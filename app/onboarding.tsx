@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Role = 'aprendiz' | 'tutor';
 
@@ -12,7 +12,11 @@ export default function OnboardingScreen() {
 
   const handleContinue = () => {
     if (!selectedRole) return;
-    router.push({ pathname: '/(auth)/register', params: { role: selectedRole } });
+    if (selectedRole === 'tutor') {
+      router.push('/(auth)/tutor-register' as any);
+    } else {
+      router.push({ pathname: '/(auth)/register', params: { role: selectedRole } });
+    }
   };
 
   return (
