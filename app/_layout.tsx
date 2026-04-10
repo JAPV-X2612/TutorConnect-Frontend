@@ -1,10 +1,10 @@
-import '../global.css';
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { ClerkProvider } from '@clerk/clerk-expo';
-import * as SecureStore from 'expo-secure-store';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import '../global.css';
 
 const tokenCache = {
   async getToken(key: string) {
@@ -33,6 +33,9 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/verify-email" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/profile-setup" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)/tutor-register" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)/tutor-certificaciones" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)/solicitud-enviada" options={{ headerShown: false }} />
           <Stack.Screen name="home" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
