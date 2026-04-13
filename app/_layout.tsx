@@ -37,6 +37,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)/tutor-certificaciones" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/solicitud-enviada" options={{ headerShown: false }} />
           <Stack.Screen name="home" options={{ headerShown: false }} />
+          <Stack.Screen name="oauth-native-callback" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
         <StatusBar style="light" />

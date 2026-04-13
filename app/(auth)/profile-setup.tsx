@@ -8,8 +8,10 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSignUp } from '@clerk/clerk-expo';
+import { useClerk, useSignUp } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
+import { useApiRequest } from '../../services/api';
+import { API_ENDPOINTS } from '../../constants/api';
 
 type BannerError = 'network' | 'generic';
 
@@ -20,6 +22,8 @@ const BANNER_MESSAGES: Record<BannerError, string> = {
 
 export default function ProfileSetupScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();
+  const clerk = useClerk();
+  const api = useApiRequest();
   const router = useRouter();
 
   const [nombre, setNombre] = useState('');
@@ -50,6 +54,18 @@ export default function ProfileSetupScreen() {
 
       if (signUp.status === 'complete') {
         await setActive!({ session: signUp.createdSessionId });
+
+        const clerkId = clerk.user?.id;
+        const email = clerk.user?.primaryEmailAddress?.emailAddress;
+        if (clerkId && email) {
+          await api.post(API_ENDPOINTS.usersCreate, {
+            clerkId,
+            email,
+            role: 'APRENDIZ',
+          });
+          // 201 = created, 409 = already exists — both are acceptable
+        }
+
         router.replace('/home');
       }
     } catch (err: any) {
