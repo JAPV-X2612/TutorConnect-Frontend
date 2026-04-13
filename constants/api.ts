@@ -17,6 +17,9 @@ const getApiBaseUrl = () => {
 export const API_BASE_URL = getApiBaseUrl();
 
 export const API_ENDPOINTS = {
+  // User endpoints
+  usersCreate: `${API_BASE_URL}/users`,
+  usersMe: `${API_BASE_URL}/users/me`,
   // Tutor endpoints
   tutorRegister: `${API_BASE_URL}/tutors/register`,
   uploadCertification: `${API_BASE_URL}/tutors/certifications`,

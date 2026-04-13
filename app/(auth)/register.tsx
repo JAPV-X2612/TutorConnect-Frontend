@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useOAuth } from '@clerk/clerk-expo';
+import { useClerk, useOAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useApiRequest } from '../../services/api';
+import { API_ENDPOINTS } from '../../constants/api';
 
 type BannerError = 'network' | 'generic';
 
@@ -14,9 +16,24 @@ const BANNER_MESSAGES: Record<BannerError, string> = {
 
 export default function RegisterScreen() {
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+  const clerk = useClerk();
+  const api = useApiRequest();
   const router = useRouter();
   const [bannerError, setBannerError] = useState<BannerError | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const syncUserWithBackend = async () => {
+    const clerkId = clerk.user?.id;
+    const email = clerk.user?.primaryEmailAddress?.emailAddress;
+    if (!clerkId || !email) return;
+
+    // 201 = created, 409 = already exists — both are acceptable; other errors are non-blocking
+    await api.post(API_ENDPOINTS.usersCreate, {
+      clerkId,
+      email,
+      role: 'APRENDIZ',
+    });
+  };
 
   const handleGoogleSignUp = async () => {
     setBannerError(null);
@@ -26,6 +43,7 @@ export default function RegisterScreen() {
 
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });
+        await syncUserWithBackend();
         router.replace('/home');
       } else if (signUp?.status === 'missing_requirements') {
         router.push('/(auth)/profile-setup' as any);
