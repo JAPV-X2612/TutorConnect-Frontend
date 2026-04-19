@@ -52,21 +52,15 @@ export const useApiRequest = () => {
 
       const token = await getToken();
 
-      if (!token) {
-        return {
-          error: 'No authentication token available',
-          status: 401,
-        };
-      }
-
       const headers: HeadersInit = {
-        'Authorization': `Bearer ${token}`,
+        'ngrok-skip-browser-warning': 'true',
       };
 
-      // Only add Content-Type if not FormData (FormData sets it automatically)
-      if (!isFormData && !body) {
-        headers['Content-Type'] = 'application/json';
-      } else if (!isFormData && body) {
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      if (!isFormData) {
         headers['Content-Type'] = 'application/json';
       }
 

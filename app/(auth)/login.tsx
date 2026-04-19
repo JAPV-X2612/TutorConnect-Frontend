@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useOAuth } from '@clerk/clerk-expo';
+import { useAuth, useOAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,9 +14,17 @@ const BANNER_MESSAGES: Record<BannerError, string> = {
 
 export default function LoginScreen() {
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+  const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
   const [bannerError, setBannerError] = useState<BannerError | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Redirect immediately if there is already an active session.
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace('/(tabs)');
+    }
+  }, [isLoaded, isSignedIn]);
 
   const handleGoogleSignIn = async () => {
     setBannerError(null);
@@ -30,11 +38,14 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       if (err?.code === 'ERR_CANCELED' || err?.message?.includes('cancel')) return;
-      if (!err?.errors) {
-        setBannerError('network');
-      } else {
-        setBannerError('generic');
+
+      // Session already active — user is signed in, go to tabs.
+      if (err?.errors?.[0]?.code === 'session_exists') {
+        router.replace('/(tabs)');
+        return;
       }
+
+      setBannerError(!err?.errors ? 'network' : 'generic');
     } finally {
       setLoading(false);
     }
