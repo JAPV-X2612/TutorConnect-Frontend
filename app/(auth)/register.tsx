@@ -44,7 +44,7 @@ export default function RegisterScreen() {
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });
         await syncUserWithBackend();
-        router.replace('/home');
+        router.replace('/(tabs)');
       } else if (signUp?.status === 'missing_requirements') {
         router.push('/(auth)/profile-setup' as any);
       }

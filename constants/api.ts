@@ -21,6 +21,10 @@ export const API_ENDPOINTS = {
   usersCreate: `${API_BASE_URL}/users`,
   usersMe: `${API_BASE_URL}/users/me`,
   // Tutor endpoints
+  tutors: (subject?: string) =>
+    subject
+      ? `${API_BASE_URL}/tutors?subject=${encodeURIComponent(subject)}`
+      : `${API_BASE_URL}/tutors`,
   tutorRegister: `${API_BASE_URL}/tutors/register`,
   uploadCertification: `${API_BASE_URL}/tutors/certifications`,
   deleteCertification: (certificationId: string) =>
