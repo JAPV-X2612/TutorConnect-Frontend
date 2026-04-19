@@ -61,12 +61,14 @@ export default function ProfileSetupScreen() {
           await api.post(API_ENDPOINTS.usersCreate, {
             clerkId,
             email,
-            role: 'APRENDIZ',
+            firstName,
+            lastName,
+            role: 'LEARNER',
           });
           // 201 = created, 409 = already exists — both are acceptable
         }
 
-        router.replace('/home');
+        router.replace('/(tabs)');
       }
     } catch (err: any) {
       if (!err?.errors) {
