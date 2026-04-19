@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useClerk, useOAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useApiRequest } from '../../services/api';
-import { API_ENDPOINTS } from '../../constants/api';
+import { useLearnerRegistration } from '../../hooks/use-learner-registration';
+import { SelectInput } from '../../components/ui/select-input';
+import { InterestPicker } from '../../components/ui/interest-picker';
+import { CITIES, ORGANIZATIONS, PROGRAMS, INTERESTS } from '../../constants/registration-options';
 
 type BannerError = 'network' | 'generic';
 
@@ -15,57 +15,28 @@ const BANNER_MESSAGES: Record<BannerError, string> = {
 };
 
 export default function RegisterScreen() {
-  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
-  const clerk = useClerk();
-  const api = useApiRequest();
   const router = useRouter();
-  const [bannerError, setBannerError] = useState<BannerError | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const syncUserWithBackend = async () => {
-    const clerkId = clerk.user?.id;
-    const email = clerk.user?.primaryEmailAddress?.emailAddress;
-    if (!clerkId || !email) return;
-
-    // 201 = created, 409 = already exists — both are acceptable; other errors are non-blocking
-    await api.post(API_ENDPOINTS.usersCreate, {
-      clerkId,
-      email,
-      role: 'APRENDIZ',
-    });
-  };
-
-  const handleGoogleSignUp = async () => {
-    setBannerError(null);
-    setLoading(true);
-    try {
-      const { createdSessionId, signUp, setActive } = await startOAuthFlow();
-
-      if (createdSessionId) {
-        await setActive!({ session: createdSessionId });
-        await syncUserWithBackend();
-        router.replace('/(tabs)');
-      } else if (signUp?.status === 'missing_requirements') {
-        router.push('/(auth)/profile-setup' as any);
-      }
-    } catch (err: any) {
-      if (err?.code === 'ERR_CANCELED' || err?.message?.includes('cancel')) return;
-      if (!err?.errors) {
-        setBannerError('network');
-      } else {
-        setBannerError('generic');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    form,
+    setForm,
+    loading,
+    bannerError,
+    errors,
+    addInterest,
+    removeInterest,
+    handleRegister,
+  } = useLearnerRegistration();
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <View className="flex-1 px-6 justify-center">
-        <Text className="text-3xl font-bold text-text-primary mb-2">Crear cuenta</Text>
-        <Text className="text-base text-text-muted mb-10">
-          Empieza gratis con tu cuenta de Google.
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text className="text-3xl font-bold text-text-primary mb-1">Crear cuenta</Text>
+        <Text className="text-base text-text-muted mb-8">
+          Cuéntanos sobre ti para conectarte con los mejores tutores.
         </Text>
 
         {bannerError && (
@@ -74,8 +45,87 @@ export default function RegisterScreen() {
           </View>
         )}
 
+        {/* Organization */}
+        <View className="mb-5">
+          <Text className="text-sm font-semibold text-text-primary mb-1.5">
+            Universidad, empresa u organización{' '}
+            <Text className="text-red-500">*</Text>
+          </Text>
+          <SelectInput
+            options={ORGANIZATIONS}
+            value={form.organizationName}
+            onChange={(v) => setForm((prev) => ({ ...prev, organizationName: v }))}
+            placeholder="Selecciona tu organización"
+            otherLabel="Otra"
+            hasError={!!errors.organizationName}
+          />
+          {errors.organizationName && (
+            <Text className="text-red-500 text-xs mt-1 ml-1">{errors.organizationName}</Text>
+          )}
+        </View>
+
+        {/* Academic program */}
+        <View className="mb-5">
+          <Text className="text-sm font-semibold text-text-primary mb-1.5">
+            Programa académico
+          </Text>
+          <SelectInput
+            options={PROGRAMS}
+            value={form.program}
+            onChange={(v) => setForm((prev) => ({ ...prev, program: v }))}
+            placeholder="Selecciona tu programa"
+            otherLabel="Otro"
+          />
+        </View>
+
+        {/* City */}
+        <View className="mb-5">
+          <Text className="text-sm font-semibold text-text-primary mb-1.5">Ciudad</Text>
+          <SelectInput
+            options={CITIES}
+            value={form.city}
+            onChange={(v) => setForm((prev) => ({ ...prev, city: v }))}
+            placeholder="Selecciona tu ciudad"
+            otherLabel="Otra"
+          />
+        </View>
+
+        {/* Current semester */}
+        <View className="mb-5">
+          <Text className="text-sm font-semibold text-text-primary mb-1.5">
+            Semestre actual
+          </Text>
+          <TextInput
+            className="bg-white border border-border rounded-xl px-4 py-3.5 text-base text-text-primary"
+            placeholder="Ej: 5"
+            keyboardType="numeric"
+            value={form.currentSemester}
+            onChangeText={(v) =>
+              setForm((prev) => ({ ...prev, currentSemester: v.replace(/[^0-9]/g, '') }))
+            }
+          />
+        </View>
+
+        {/* Interests */}
+        <View className="mb-8">
+          <Text className="text-sm font-semibold text-text-primary mb-1.5">
+            Intereses <Text className="text-red-500">*</Text>
+          </Text>
+          <InterestPicker
+            predefinedOptions={INTERESTS}
+            selected={form.interests}
+            onAdd={addInterest}
+            onRemove={removeInterest}
+            hasError={!!errors.interests}
+          />
+          {errors.interests && (
+            <Text className="text-red-500 text-xs mt-1 ml-1">{errors.interests}</Text>
+          )}
+        </View>
+
+        {/* Google OAuth button */}
         <TouchableOpacity
-          onPress={handleGoogleSignUp}
+          onPress={handleRegister}
           disabled={loading}
           activeOpacity={0.85}
           className="flex-row items-center justify-center gap-3 bg-white border border-border rounded-full py-4 shadow-sm"
@@ -85,9 +135,9 @@ export default function RegisterScreen() {
             {loading ? 'Conectando...' : 'Continuar con Google'}
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
-      <View className="px-6 pb-10 flex-row justify-center">
+      <View className="px-6 pb-6 flex-row justify-center">
         <Text className="text-sm text-text-muted">¿Ya tienes cuenta? </Text>
         <TouchableOpacity onPress={() => router.push('/(auth)/login' as any)}>
           <Text className="text-sm text-text-link font-semibold">Inicia sesión</Text>
