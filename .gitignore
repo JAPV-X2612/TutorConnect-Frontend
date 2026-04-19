@@ -1,48 +1,256 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
-node_modules/
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
+# =========================================
+# React Native Base
+# =========================================
 *.orig.*
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.hprof
+/ios/
+/android/
+*.xcworkspace
+*.xcodeproj
+*.pbxproj
+/Pods/
+Podfile.lock
 
-# Metro
+# =========================================
+# Expo Framework
+# =========================================
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.expo-shared/
+app-example/
+
+# =========================================
+# Metro Bundler
+# =========================================
 .metro-health-check*
+.metro/
+metro-cache/
 
-# debug
+# =========================================
+# Package Managers
+# =========================================
+# npm
+node_modules/
 npm-debug.*
+package-lock.json.backup
+
+# Yarn
 yarn-debug.*
 yarn-error.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
+# pnpm
+.pnpm-store/
+pnpm-debug.log*
+
+# Bun
+.bun/
+
+# =========================================
+# TypeScript
+# =========================================
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# =========================================
+# Testing & Coverage
+# =========================================
+coverage/
+.coverage
+*.lcov
+lcov.info
+junit.xml
+test-results/
+jest-results/
+__snapshots__/
+.jest-cache/
+html-coverage/
+
+# =========================================
+# Type Checkers & Linters
+# =========================================
+# ESLint
+.eslintcache
+eslint-report.json
+
+# Prettier
+.prettier-cache
+
+# Stylelint
+.stylelintcache
+
+# NativeWind / Tailwind CSS
+.tailwindcss-cache/
+
+# =========================================
+# IDEs
+# =========================================
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Cursor
+.cursor/
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+.nvimrc.local
+
+# =========================================
+# Documentation
+# =========================================
+docs/_build/
+/site
+storybook-static/
+.cache/
+
+# =========================================
+# Operating Systems
+# =========================================
 # macOS
 .DS_Store
-*.pem
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
 
-# local env files
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+
+# =========================================
+# Cloud Platforms
+# =========================================
+# AWS
+.aws/
+.aws-sam/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+.firebaserc
+
+# Google Cloud
+.gcloud/
+application_default_credentials.json
+
+# =========================================
+# Infrastructure
+# =========================================
+.terraform/
+**/.terraform/
+**/.terragrunt-cache/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# =========================================
+# Secrets & Credentials
+# =========================================
 .env
 .env.*
-.env*.local
+!.env.example
+*.pem
+secrets.yaml
+secrets.json
+credentials.json
+google-services.json
+GoogleService-Info.plist
+*.keystore
+keystore.properties
 
-# typescript
-*.tsbuildinfo
+# =========================================
+# Logs & Temporary Files
+# =========================================
+*.log
+*.tmp
+*.bak
+logs/
+tmp/
+temp/
+.temp/
 
-app-example
+# =========================================
+# Build Output
+# =========================================
+build/
+output/
+.output/
+*.ipa
+*.apk
+*.aab
 
-# generated native folders
-/ios
-/android
+# =========================================
+# EAS (Expo Application Services)
+# =========================================
+eas-build-local-tmp/
+.easignore
 
-# Android local config
-android/local.properties
+# =========================================
+# Sentry
+# =========================================
+.sentryclirc
+
+# =========================================
+# Stripe
+# =========================================
+.stripe/
+
+# =========================================
+# Clerk
+# =========================================
+.clerk/
+
+# =========================================
+# Storybook
+# =========================================
+.storybook/public/
+
+# =========================================
+# Project-Specific
+# =========================================
+sum.py
