@@ -1,78 +1,31 @@
-import { API_ENDPOINTS } from '@/constants/api';
-import { useApiRequest } from '@/services/api';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTutorRegistration } from '@/hooks/use-tutor-registration';
 
-type BannerError = 'conflict' | 'network' | 'generic' | 'unauthorized';
-
-const BANNER_MESSAGES: Record<BannerError, string> = {
+const BANNER_MESSAGES: Record<string, string> = {
   conflict: 'Ya tienes un perfil de tutor registrado.',
   network: 'Sin conexión. Verifica tu internet e intenta de nuevo.',
-  generic: 'Completa todos los campos requeridos.',
-  unauthorized: 'Debes iniciar sesión para registrar tu perfil de tutor.',
+  generic: 'Ocurrió un error. Intenta de nuevo.',
+  unauthorized: 'No pudimos completar la autenticación. Intenta de nuevo.',
 };
 
+/**
+ * Tutor registration screen — collects name and bio, then triggers
+ * Google OAuth and backend profile creation.
+ *
+ * @author TutorConnect Team
+ */
 export default function TutorRegisterScreen() {
-  const router = useRouter();
-  const { post } = useApiRequest();
-
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [bannerError, setBannerError] = useState<BannerError | null>(null);
-
-  // Validation
-  const nombreError =
-    submitted && nombre.trim().length < 2 ? 'Requerido, mín 2 caracteres' : null;
-  const apellidoError =
-    submitted && apellido.trim().length < 2 ? 'Requerido, mín 2 caracteres' : null;
-
-  const isValid = nombre.trim().length >= 2 && apellido.trim().length >= 2;
-
-  const handleContinue = async () => {
-    setSubmitted(true);
-    setBannerError(null);
-
-    if (!isValid) return;
-
-    setLoading(true);
-    try {
-      const response = await post(API_ENDPOINTS.tutorRegister, {
-        nombre: nombre.trim(),
-        apellido: apellido.trim(),
-        descripcion: descripcion.trim() || null,
-      });
-
-      if (response.status === 201 || response.status === 200) {
-        // Navigate to certification upload screen
-        router.push('/(auth)/tutor-certificaciones' as any);
-      } else if (response.status === 409) {
-        setBannerError('conflict');
-      } else if (response.status === 401) {
-        setBannerError('unauthorized');
-      } else if (response.status === 0) {
-        setBannerError('network');
-      } else {
-        setBannerError('generic');
-      }
-    } catch (err) {
-      setBannerError('network');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { form, setForm, loading, bannerError, errors, isFormValid, handleRegister } =
+    useTutorRegistration();
 
   return (
     <KeyboardAvoidingView
@@ -104,16 +57,16 @@ export default function TutorRegisterScreen() {
           <View className="mb-5">
             <TextInput
               className={`bg-white border rounded-xl px-4 py-3.5 text-base text-text-primary ${
-                nombreError ? 'border-red-400' : 'border-border'
+                errors.nombre ? 'border-red-400' : 'border-border'
               }`}
               placeholder="Tu nombre"
               autoCapitalize="words"
               autoCorrect={false}
-              value={nombre}
-              onChangeText={setNombre}
+              value={form.nombre}
+              onChangeText={(v: string) => setForm((prev: import('@/hooks/use-tutor-registration').TutorFormState) => ({ ...prev, nombre: v }))}
             />
-            {nombreError && (
-              <Text className="text-red-500 text-xs mt-1 ml-1">{nombreError}</Text>
+            {errors.nombre && (
+              <Text className="text-red-500 text-xs mt-1 ml-1">{errors.nombre}</Text>
             )}
           </View>
 
@@ -121,16 +74,16 @@ export default function TutorRegisterScreen() {
           <View className="mb-5">
             <TextInput
               className={`bg-white border rounded-xl px-4 py-3.5 text-base text-text-primary ${
-                apellidoError ? 'border-red-400' : 'border-border'
+                errors.apellido ? 'border-red-400' : 'border-border'
               }`}
               placeholder="Tu apellido"
               autoCapitalize="words"
               autoCorrect={false}
-              value={apellido}
-              onChangeText={setApellido}
+              value={form.apellido}
+              onChangeText={(v) => setForm((prev: import('@/hooks/use-tutor-registration').TutorFormState) => ({ ...prev, apellido: v }))}
             />
-            {apellidoError && (
-              <Text className="text-red-500 text-xs mt-1 ml-1">{apellidoError}</Text>
+            {errors.apellido && (
+              <Text className="text-red-500 text-xs mt-1 ml-1">{errors.apellido}</Text>
             )}
           </View>
 
@@ -138,7 +91,7 @@ export default function TutorRegisterScreen() {
           <View className="mb-8">
             <View className="flex-row justify-between items-center mb-2">
               <Text className="text-sm text-text-muted">Descripción (Opcional)</Text>
-              <Text className="text-xs text-text-muted">{descripcion.length}/500</Text>
+              <Text className="text-xs text-text-muted">{form.descripcion.length}/500</Text>
             </View>
             <TextInput
               className="bg-white border border-border rounded-xl px-4 py-3.5 text-base text-text-primary"
@@ -146,24 +99,24 @@ export default function TutorRegisterScreen() {
               multiline
               numberOfLines={4}
               maxLength={500}
-              value={descripcion}
-              onChangeText={setDescripcion}
+              value={form.descripcion}
+              onChangeText={(v) => setForm((prev: import('@/hooks/use-tutor-registration').TutorFormState) => ({ ...prev, descripcion: v }))}
               textAlignVertical="top"
             />
           </View>
 
           {/* Continue Button */}
           <TouchableOpacity
-            onPress={handleContinue}
-            disabled={!isValid || loading}
+            onPress={handleRegister}
+            disabled={!isFormValid || loading}
             activeOpacity={0.85}
             className={`rounded-full py-4 items-center ${
-              isValid ? 'bg-primary' : 'bg-secondary opacity-40'
+              isFormValid ? 'bg-primary' : 'bg-secondary opacity-40'
             }`}
           >
             <Text
               className={`text-base font-semibold ${
-                isValid ? 'text-primary-foreground' : 'text-text-muted'
+                isFormValid ? 'text-primary-foreground' : 'text-text-muted'
               }`}
             >
               {loading ? 'Enviando...' : 'Continuar'}
