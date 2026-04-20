@@ -1,189 +1,225 @@
-import { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-} from 'react-native';
+import { useUser } from '@clerk/clerk-expo';
+import { FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useApiRequest } from '../../services/api';
-import { API_ENDPOINTS } from '../../constants/api';
+import { useLearnerDashboard } from '@/hooks/use-learner-dashboard';
+import type { SuggestedTutor, UpcomingSession } from '@/hooks/use-learner-dashboard';
 
-interface Tutor {
-  id: string;
-  nombre: string;
-  apellido: string;
-  subjects?: string[];
-  rating?: number;
-  precioHora?: number;
-  disponible: boolean;
-}
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-const SUBJECTS = ['Todos', 'Matemáticas', 'Física', 'Programación', 'Inglés'];
+const formatCOP = (amount: number) =>
+  new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(amount);
 
-const AVATAR_COLORS = ['#006A75', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
+const formatDate = (isoString: string) =>
+  new Intl.DateTimeFormat('es-CO', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(isoString));
 
-function getInitials(nombre: string, apellido: string): string {
-  return `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase();
-}
+// ── Sub-components ────────────────────────────────────────────────────────────
 
-function getAvatarColor(name: string): string {
-  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
-}
-
-function TutorCard({ tutor }: { tutor: Tutor }) {
-  const initials = getInitials(tutor.nombre, tutor.apellido);
-  const avatarColor = getAvatarColor(tutor.nombre);
-
+function SkeletonBlock({ h, w }: Readonly<{ h: number; w?: string }>) {
   return (
-    <View className="bg-white rounded-2xl p-4 mb-3 border border-border">
-      <View className="flex-row items-center gap-3">
-        <View
-          className="w-12 h-12 rounded-full items-center justify-center"
-          style={{ backgroundColor: avatarColor }}
-        >
-          <Text className="text-white font-bold text-base">{initials}</Text>
-        </View>
-        <View className="flex-1">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-text-primary font-semibold text-base">
-              {tutor.nombre} {tutor.apellido}
-            </Text>
-            {tutor.disponible && (
-              <View className="bg-green-100 px-2 py-0.5 rounded-full">
-                <Text className="text-green-700 text-xs font-semibold">DISPONIBLE HOY</Text>
-              </View>
-            )}
-          </View>
-          <Text className="text-text-muted text-sm mt-0.5">
-            {tutor.subjects?.join(' · ') ?? 'Sin materias'}
-          </Text>
-        </View>
-      </View>
+    <View
+      className="bg-gray-200 rounded-xl"
+      style={{ height: h, width: w ?? '100%', marginBottom: 8 }}
+    />
+  );
+}
 
-      <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-border">
-        <View className="flex-row items-center gap-1">
-          <Text className="text-yellow-500 text-sm">★</Text>
-          <Text className="text-text-primary text-sm font-medium">
-            {tutor.rating != null ? tutor.rating.toFixed(1) : '—'}
-          </Text>
-        </View>
-        <Text className="text-primary font-bold text-base">
-          {tutor.precioHora != null ? `$${tutor.precioHora}/h` : 'Precio a consultar'}
-        </Text>
+function LoadingSkeleton() {
+  return (
+    <SafeAreaView className="flex-1 bg-background px-6 pt-8">
+      <SkeletonBlock h={32} w="60%" />
+      <SkeletonBlock h={16} w="40%" />
+      <View style={{ marginTop: 16 }}>
+        <SkeletonBlock h={112} />
+      </View>
+      <SkeletonBlock h={16} w="50%" />
+      <View className="flex-row gap-3">
+        <SkeletonBlock h={144} w="45%" />
+        <SkeletonBlock h={144} w="45%" />
+      </View>
+      <SkeletonBlock h={16} w="50%" />
+      <SkeletonBlock h={72} />
+      <SkeletonBlock h={72} />
+    </SafeAreaView>
+  );
+}
+
+function ErrorView({ message, onRetry }: Readonly<{ message: string; onRetry: () => void }>) {
+  return (
+    <SafeAreaView className="flex-1 bg-background items-center justify-center px-6">
+      <Text className="text-text-primary text-center mb-4">{message}</Text>
+      <TouchableOpacity
+        onPress={onRetry}
+        accessibilityLabel="Reintentar carga del panel"
+        className="bg-primary rounded-full px-6 py-3"
+      >
+        <Text className="text-primary-foreground font-semibold">Reintentar</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+}
+
+function WeeklyProgressCard({ completed, total }: Readonly<{ completed: number; total: number }>) {
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return (
+    <View
+      className="bg-teal-600 rounded-2xl px-5 py-4 mb-6"
+      accessibilityLabel={`Progreso semanal: ${completed} de ${total} sesiones`}
+    >
+      <Text className="text-white text-sm font-medium mb-1">Progreso semanal</Text>
+      <Text className="text-white text-3xl font-bold mb-1">
+        {completed}/{total}
+      </Text>
+      <Text className="text-teal-100 text-xs">sesiones esta semana · {percentage}% completado</Text>
+      <View className="mt-3 h-2 bg-teal-800 rounded-full overflow-hidden">
+        <View
+          className="h-full bg-white rounded-full"
+          style={{ width: `${percentage}%` }}
+        />
       </View>
     </View>
   );
 }
 
-export default function MarketplaceScreen() {
-  const api = useApiRequest();
-  const [tutors, setTutors] = useState<Tutor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('Todos');
+function TutorCard({ tutor }: Readonly<{ tutor: SuggestedTutor }>) {
+  return (
+    <View
+      className="bg-white border border-border rounded-2xl p-4 mr-3 w-44"
+      accessibilityLabel={`Tutor ${tutor.nombre} ${tutor.apellido}`}
+    >
+      <View className="w-10 h-10 rounded-full bg-primary items-center justify-center mb-2">
+        <Text className="text-white font-bold text-base">
+          {tutor.nombre.charAt(0)}
+          {tutor.apellido.charAt(0)}
+        </Text>
+      </View>
+      <Text className="text-text-primary font-semibold text-sm" numberOfLines={1}>
+        {tutor.nombre} {tutor.apellido}
+      </Text>
+      {tutor.subjects.length > 0 && (
+        <Text className="text-text-muted text-xs mt-1" numberOfLines={1}>
+          {tutor.subjects.slice(0, 2).join(' · ')}
+        </Text>
+      )}
+      {tutor.rating != null && (
+        <Text className="text-yellow-500 text-xs mt-1">★ {tutor.rating.toFixed(1)}</Text>
+      )}
+      {tutor.precioHora != null && (
+        <Text className="text-text-muted text-xs mt-1">{formatCOP(tutor.precioHora)}/h</Text>
+      )}
+    </View>
+  );
+}
 
-  const fetchTutors = async (subject: string) => {
-    setLoading(true);
-    setError(null);
-    const endpoint =
-      subject === 'Todos' ? API_ENDPOINTS.tutors() : API_ENDPOINTS.tutors(subject);
-    const result = await api.get<Tutor[]>(endpoint);
-    if (result.error) {
-      setError('No se pudieron cargar los tutores. Intenta de nuevo.');
-    } else {
-      setTutors(result.data ?? []);
-    }
-    setLoading(false);
+function SessionItem({ session }: Readonly<{ session: UpcomingSession }>) {
+  const statusLabel: Record<string, string> = {
+    confirmed: 'Confirmada',
+    pending: 'Pendiente',
   };
+  const isConfirmed = session.status === 'confirmed';
+  return (
+    <View
+      className="bg-white border border-border rounded-2xl px-4 py-3 mb-3"
+      accessibilityLabel={`Sesión con ${session.tutorName} el ${formatDate(session.scheduledAt)}`}
+    >
+      <View className="flex-row justify-between items-center">
+        <Text className="text-text-primary font-semibold text-sm flex-1 mr-2" numberOfLines={1}>
+          {session.tutorName}
+        </Text>
+        <View className={`px-2 py-0.5 rounded-full ${isConfirmed ? 'bg-teal-100' : 'bg-amber-100'}`}>
+          <Text className={`text-xs font-medium ${isConfirmed ? 'text-teal-700' : 'text-amber-700'}`}>
+            {statusLabel[session.status] ?? session.status}
+          </Text>
+        </View>
+      </View>
+      <Text className="text-text-muted text-xs mt-1">{formatDate(session.scheduledAt)}</Text>
+    </View>
+  );
+}
 
-  useEffect(() => {
-    fetchTutors(selectedSubject);
-  }, [selectedSubject]);
+// ── Screen ────────────────────────────────────────────────────────────────────
 
-  const filteredTutors = search.trim()
-    ? tutors.filter((t) =>
-        `${t.nombre} ${t.apellido}`.toLowerCase().includes(search.toLowerCase()),
-      )
-    : tutors;
+/**
+ * Learner dashboard screen (HU-06).
+ *
+ * Displays weekly session progress, upcoming scheduled sessions, and
+ * personalised tutor suggestions based on the learner's registered interests.
+ *
+ * @author TutorConnect Team
+ */
+export default function LearnerDashboardScreen() {
+  const { user } = useUser();
+  const { data, loading, error, refetch } = useLearnerDashboard();
+  const displayName = user?.firstName ?? 'Aprendiz';
+
+  if (loading) return <LoadingSkeleton />;
+  if (error) return <ErrorView message={error} onRetry={refetch} />;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <View className="px-6 pt-4 pb-2">
-        <Text className="text-2xl font-bold text-text-primary">Encuentra tu tutor</Text>
-        <Text className="text-text-muted text-sm mt-1">Aprende con los mejores</Text>
-      </View>
-
-      <View className="px-6 mb-3">
-        <TextInput
-          className="bg-white border border-border rounded-xl px-4 py-3 text-base text-text-primary"
-          placeholder="Buscar por nombre..."
-          placeholderTextColor="#64748B"
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="mb-3 grow-0 shrink-0"
-        contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}
+        className="flex-1 px-6"
+        contentContainerStyle={{ paddingTop: 32, paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
       >
-        {SUBJECTS.map((subject) => (
-          <TouchableOpacity
-            key={subject}
-            onPress={() => setSelectedSubject(subject)}
-            className={`px-4 py-2 rounded-full border ${
-              selectedSubject === subject ? 'bg-primary border-primary' : 'bg-white border-border'
-            }`}
-          >
-            <Text
-              className={`text-sm font-medium ${
-                selectedSubject === subject ? 'text-primary-foreground' : 'text-text-muted'
-              }`}
-            >
-              {subject}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+        {/* Greeting */}
+        <Text className="text-3xl font-bold text-text-primary mb-1">Hola, {displayName}</Text>
+        <Text className="text-base text-text-muted mb-6">¿Listo para aprender hoy?</Text>
 
-      {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#006A75" />
-        </View>
-      ) : error ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-red-600 text-center text-base mb-4">{error}</Text>
-          <TouchableOpacity
-            onPress={() => fetchTutors(selectedSubject)}
-            className="bg-primary rounded-full px-6 py-3"
-          >
-            <Text className="text-primary-foreground font-semibold">Reintentar</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredTutors}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
-          renderItem={({ item }) => <TutorCard tutor={item} />}
-          ListEmptyComponent={
-            <View className="items-center justify-center pt-20">
-              <Text className="text-text-muted text-base text-center">
-                {search
-                  ? 'No se encontraron tutores con ese nombre.'
-                  : 'No hay tutores disponibles en esta categoría.'}
-              </Text>
-            </View>
-          }
+        {/* Weekly Progress */}
+        <WeeklyProgressCard
+          completed={data!.weeklyProgress.completed}
+          total={data!.weeklyProgress.total}
         />
-      )}
+
+        {/* Suggested Tutors */}
+        <Text className="text-lg font-bold text-text-primary mb-3">Tutores sugeridos</Text>
+        {data!.suggestedTutors.length === 0 ? (
+          <View className="bg-white border border-border rounded-2xl px-4 py-6 mb-6 items-center">
+            <Text className="text-text-muted text-sm text-center">
+              Aún no hay tutores disponibles. Vuelve pronto.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={data!.suggestedTutors}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <TutorCard tutor={item} />}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mb-6"
+          />
+        )}
+
+        {/* Upcoming Sessions */}
+        <Text className="text-lg font-bold text-text-primary mb-3">Próximas sesiones</Text>
+        {data!.upcomingSessions.length === 0 ? (
+          <View className="bg-white border border-border rounded-2xl px-4 py-6 items-center">
+            <Text className="text-text-muted text-sm text-center mb-3">
+              No tienes sesiones programadas.
+            </Text>
+            <TouchableOpacity
+              className="bg-primary rounded-full px-5 py-2"
+              accessibilityLabel="Buscar un tutor"
+            >
+              <Text className="text-primary-foreground text-sm font-semibold">Buscar tutor</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          data!.upcomingSessions.map((session) => (
+            <SessionItem key={session.id} session={session} />
+          ))
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }

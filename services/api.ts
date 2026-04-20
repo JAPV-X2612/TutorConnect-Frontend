@@ -16,6 +16,34 @@ const getMockResponse = async <T = any>(
   endpoint: string,
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT'
 ): Promise<ApiResponse<T>> => {
+  if (method === 'GET' && endpoint.includes('/dashboard/learner')) {
+    await sleep(400);
+    return {
+      status: 200,
+      data: {
+        weeklyProgress: { completed: 2, total: 4 },
+        upcomingSessions: [
+          {
+            id: 'mock-session-1',
+            tutorName: 'Carlos García',
+            scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
+            status: 'confirmed',
+          },
+        ],
+        suggestedTutors: [
+          {
+            id: 'mock-tutor-1',
+            nombre: 'Ana',
+            apellido: 'Martínez',
+            subjects: ['Matemáticas', 'Física'],
+            rating: 4.8,
+            precioHora: 25000,
+          },
+        ],
+      } as T,
+    };
+  }
+
   if (method === 'POST' && endpoint.includes('/tutors/register')) {
     await sleep(500);
     return {

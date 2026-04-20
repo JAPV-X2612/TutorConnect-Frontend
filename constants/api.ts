@@ -29,4 +29,6 @@ export const API_ENDPOINTS = {
   uploadCertification: `${API_BASE_URL}/tutors/certifications`,
   deleteCertification: (certificationId: string) =>
     `${API_BASE_URL}/tutors/certifications/${certificationId}`,
+  // Dashboard endpoints
+  learnerDashboard: `${API_BASE_URL}/dashboard/learner`,
 };
