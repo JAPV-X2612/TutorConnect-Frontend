@@ -6,6 +6,16 @@ interface ApiResponse<T = any> {
   status: number;
 }
 
+const extractErrorMessage = (data: unknown): string => {
+  if (typeof data === 'string') return data;
+  if (data !== null && typeof data === 'object') {
+    const d = data as Record<string, unknown>;
+    if (typeof d['error'] === 'string' && d['error']) return d['error'];
+    if (typeof d['message'] === 'string' && d['message']) return d['message'];
+  }
+  return 'Request failed';
+};
+
 const isFrontendOnlyMode =
   process.env.EXPO_PUBLIC_FRONTEND_ONLY === 'true';
 
@@ -119,7 +129,7 @@ export const useApiRequest = () => {
 
       if (!response.ok) {
         return {
-          error: data?.error || data?.message || 'Request failed',
+          error: extractErrorMessage(data),
           status: response.status,
           data: data,
         };
