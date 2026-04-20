@@ -10,7 +10,7 @@ export default function OAuthNativeCallback() {
   useEffect(() => {
     if (!isLoaded) return;
     if (isSignedIn) {
-      router.replace('/home');
+      router.replace('/(tabs)');
     }
   }, [isLoaded, isSignedIn]);
 

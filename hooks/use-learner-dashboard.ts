@@ -9,31 +9,22 @@ export interface WeeklyProgress {
 
 export interface UpcomingSession {
   id: string;
+  subject: string;
   tutorName: string;
   scheduledAt: string;
   status: string;
 }
 
-export interface SuggestedTutor {
-  id: string;
-  nombre: string;
-  apellido: string;
-  subjects: string[];
-  rating?: number;
-  precioHora?: number;
-}
-
 export interface LearnerDashboard {
   weeklyProgress: WeeklyProgress;
   upcomingSessions: UpcomingSession[];
-  suggestedTutors: SuggestedTutor[];
 }
 
 /**
  * Fetches and manages the learner dashboard data from the backend.
  *
- * Provides weekly progress, upcoming sessions, and personalised tutor
- * suggestions. Exposes a `refetch` callback to manually reload the data.
+ * Provides weekly progress and upcoming sessions. Exposes a `refetch`
+ * callback to manually reload the data.
  *
  * @returns Dashboard state: `data`, `loading`, `error`, and `refetch`.
  * @example

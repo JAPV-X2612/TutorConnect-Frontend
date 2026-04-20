@@ -35,19 +35,17 @@ const getMockResponse = async <T = any>(
         upcomingSessions: [
           {
             id: 'mock-session-1',
-            tutorName: 'Carlos García',
+            subject: 'Álgebra Lineal',
+            tutorName: 'Dr. Martínez',
             scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
             status: 'confirmed',
           },
-        ],
-        suggestedTutors: [
           {
-            id: 'mock-tutor-1',
-            nombre: 'Ana',
-            apellido: 'Martínez',
-            subjects: ['Matemáticas', 'Física'],
-            rating: 4.8,
-            precioHora: 25000,
+            id: 'mock-session-2',
+            subject: 'Historia Universal',
+            tutorName: 'Lic. Elena',
+            scheduledAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+            status: 'pending',
           },
         ],
       } as T,

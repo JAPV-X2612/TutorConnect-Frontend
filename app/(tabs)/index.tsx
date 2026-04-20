@@ -1,26 +1,25 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '@clerk/clerk-expo';
-import { FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLearnerDashboard } from '@/hooks/use-learner-dashboard';
-import type { SuggestedTutor, UpcomingSession } from '@/hooks/use-learner-dashboard';
+import type { UpcomingSession } from '@/hooks/use-learner-dashboard';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const formatCOP = (amount: number) =>
-  new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0,
-  }).format(amount);
+const formatMonthAbbrev = (date: Date) =>
+  new Intl.DateTimeFormat('es-CO', { month: 'short' })
+    .format(date)
+    .replaceAll('.', '')
+    .toUpperCase()
+    .slice(0, 3);
 
-const formatDate = (isoString: string) =>
+const formatTime = (date: Date) =>
   new Intl.DateTimeFormat('es-CO', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(isoString));
+    hour12: false,
+  }).format(date);
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -40,11 +39,6 @@ function LoadingSkeleton() {
       <SkeletonBlock h={16} w="40%" />
       <View style={{ marginTop: 16 }}>
         <SkeletonBlock h={112} />
-      </View>
-      <SkeletonBlock h={16} w="50%" />
-      <View className="flex-row gap-3">
-        <SkeletonBlock h={144} w="45%" />
-        <SkeletonBlock h={144} w="45%" />
       </View>
       <SkeletonBlock h={16} w="50%" />
       <SkeletonBlock h={72} />
@@ -81,67 +75,42 @@ function WeeklyProgressCard({ completed, total }: Readonly<{ completed: number; 
       </Text>
       <Text className="text-teal-100 text-xs">sesiones esta semana · {percentage}% completado</Text>
       <View className="mt-3 h-2 bg-teal-800 rounded-full overflow-hidden">
-        <View
-          className="h-full bg-white rounded-full"
-          style={{ width: `${percentage}%` }}
-        />
+        <View className="h-full bg-white rounded-full" style={{ width: `${percentage}%` }} />
       </View>
-    </View>
-  );
-}
-
-function TutorCard({ tutor }: Readonly<{ tutor: SuggestedTutor }>) {
-  return (
-    <View
-      className="bg-white border border-border rounded-2xl p-4 mr-3 w-44"
-      accessibilityLabel={`Tutor ${tutor.nombre} ${tutor.apellido}`}
-    >
-      <View className="w-10 h-10 rounded-full bg-primary items-center justify-center mb-2">
-        <Text className="text-white font-bold text-base">
-          {tutor.nombre.charAt(0)}
-          {tutor.apellido.charAt(0)}
-        </Text>
-      </View>
-      <Text className="text-text-primary font-semibold text-sm" numberOfLines={1}>
-        {tutor.nombre} {tutor.apellido}
-      </Text>
-      {tutor.subjects.length > 0 && (
-        <Text className="text-text-muted text-xs mt-1" numberOfLines={1}>
-          {tutor.subjects.slice(0, 2).join(' · ')}
-        </Text>
-      )}
-      {tutor.rating != null && (
-        <Text className="text-yellow-500 text-xs mt-1">★ {tutor.rating.toFixed(1)}</Text>
-      )}
-      {tutor.precioHora != null && (
-        <Text className="text-text-muted text-xs mt-1">{formatCOP(tutor.precioHora)}/h</Text>
-      )}
     </View>
   );
 }
 
 function SessionItem({ session }: Readonly<{ session: UpcomingSession }>) {
-  const statusLabel: Record<string, string> = {
-    confirmed: 'Confirmada',
-    pending: 'Pendiente',
-  };
-  const isConfirmed = session.status === 'confirmed';
+  const date = new Date(session.scheduledAt);
+  const month = formatMonthAbbrev(date);
+  const day = date.getDate();
+  const time = formatTime(date);
+
   return (
     <View
-      className="bg-white border border-border rounded-2xl px-4 py-3 mb-3"
-      accessibilityLabel={`Sesión con ${session.tutorName} el ${formatDate(session.scheduledAt)}`}
+      className="bg-white rounded-2xl px-3 py-3 mb-3 flex-row items-center"
+      style={{
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
+      }}
+      accessibilityLabel={`${session.subject} con ${session.tutorName} el ${month} ${day} a las ${time}`}
     >
-      <View className="flex-row justify-between items-center">
-        <Text className="text-text-primary font-semibold text-sm flex-1 mr-2" numberOfLines={1}>
-          {session.tutorName}
-        </Text>
-        <View className={`px-2 py-0.5 rounded-full ${isConfirmed ? 'bg-teal-100' : 'bg-amber-100'}`}>
-          <Text className={`text-xs font-medium ${isConfirmed ? 'text-teal-700' : 'text-amber-700'}`}>
-            {statusLabel[session.status] ?? session.status}
-          </Text>
-        </View>
+      <View className="bg-teal-50 rounded-2xl w-16 h-16 items-center justify-center mr-3">
+        <Text className="text-teal-700 text-xs font-bold tracking-wider">{month}</Text>
+        <Text className="text-teal-900 text-2xl font-bold leading-7">{day}</Text>
       </View>
-      <Text className="text-text-muted text-xs mt-1">{formatDate(session.scheduledAt)}</Text>
+      <View className="flex-1">
+        <Text className="text-text-primary text-base font-bold" numberOfLines={1}>
+          {session.subject}
+        </Text>
+        <Text className="text-text-muted text-sm mt-0.5" numberOfLines={1}>
+          Con {session.tutorName} · {time}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -151,8 +120,7 @@ function SessionItem({ session }: Readonly<{ session: UpcomingSession }>) {
 /**
  * Learner dashboard screen (HU-06).
  *
- * Displays weekly session progress, upcoming scheduled sessions, and
- * personalised tutor suggestions based on the learner's registered interests.
+ * Displays weekly session progress and upcoming scheduled sessions.
  *
  * @author TutorConnect Team
  */
@@ -181,29 +149,14 @@ export default function LearnerDashboardScreen() {
           total={data!.weeklyProgress.total}
         />
 
-        {/* Suggested Tutors */}
-        <Text className="text-lg font-bold text-text-primary mb-3">Tutores sugeridos</Text>
-        {data!.suggestedTutors.length === 0 ? (
-          <View className="bg-white border border-border rounded-2xl px-4 py-6 mb-6 items-center">
-            <Text className="text-text-muted text-sm text-center">
-              Aún no hay tutores disponibles. Vuelve pronto.
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={data!.suggestedTutors}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <TutorCard tutor={item} />}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="mb-6"
-          />
-        )}
-
         {/* Upcoming Sessions */}
-        <Text className="text-lg font-bold text-text-primary mb-3">Próximas sesiones</Text>
+        <View className="flex-row items-center justify-between mb-3">
+          <Text className="text-lg font-bold text-text-primary">Próximas Sesiones</Text>
+          <Ionicons name="calendar-outline" size={20} color="#64748B" />
+        </View>
+
         {data!.upcomingSessions.length === 0 ? (
-          <View className="bg-white border border-border rounded-2xl px-4 py-6 items-center">
+          <View className="bg-white rounded-2xl px-4 py-6 items-center">
             <Text className="text-text-muted text-sm text-center mb-3">
               No tienes sesiones programadas.
             </Text>
