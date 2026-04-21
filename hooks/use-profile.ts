@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/clerk-expo';
 import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 
@@ -18,31 +19,69 @@ export interface UserProfile {
   currentSemester?: number | null;
 }
 
+/**
+ * Fetches the authenticated user's platform profile from `GET /users/me`.
+ *
+ * Skips the network call when the Clerk session is not loaded or the user
+ * is not signed in — avoids indefinite spinners when there is no identity
+ * to query for.
+ *
+ * @author TutorConnect Team
+ */
 export function useProfile() {
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const api = useApiRequest();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!authLoaded) {
+      console.log('[useProfile] waiting for Clerk auth to load');
+      return;
+    }
 
-    const fetch = async () => {
-      setLoading(true);
+    if (!isSignedIn) {
+      console.log('[useProfile] not signed in — skipping fetch');
+      setProfile(null);
       setError(null);
-      const result = await api.get<UserProfile>(API_ENDPOINTS.usersMe);
-      if (cancelled) return;
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    console.log('[useProfile] fetching /users/me...');
+
+    api.get<UserProfile>(API_ENDPOINTS.usersMe).then((result) => {
+      if (cancelled) {
+        console.log('[useProfile] fetch cancelled (component unmounted)');
+        return;
+      }
+      console.log('[useProfile] fetch result:', {
+        status: result.status,
+        hasData: !!result.data,
+        error: result.error,
+        dataKeys: result.data ? Object.keys(result.data) : [],
+        role: result.data?.role,
+        rolePresent: result.data != null && 'role' in result.data,
+      });
       if (result.error || !result.data) {
         setError('No se pudo cargar el perfil.');
+        setProfile(null);
       } else {
         setProfile(result.data);
       }
       setLoading(false);
-    };
+    });
 
-    fetch();
-    return () => { cancelled = true; };
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+    // `api` identity changes each render; its underlying Clerk getToken is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoaded, isSignedIn]);
 
   return { profile, loading, error };
 }

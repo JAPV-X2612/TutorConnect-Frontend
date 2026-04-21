@@ -24,6 +24,15 @@ export default function Index() {
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { profile, loading: profileLoading, error: profileError } = useProfile();
 
+  console.log('[app/index] state:', {
+    authLoaded,
+    isSignedIn,
+    profileLoading,
+    profileError,
+    hasProfile: !!profile,
+    role: profile?.role,
+  });
+
   if (!authLoaded || (isSignedIn && profileLoading)) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
@@ -37,6 +46,12 @@ export default function Index() {
   }
 
   if (profileError || !profile) {
+    return <Redirect href={ROUTES.AUTH_PROFILE_SETUP} />;
+  }
+
+  // Defensive: if the backend omits the role field, route to profile-setup
+  // rather than the default home (which would loop through RoleGuard).
+  if (!profile.role) {
     return <Redirect href={ROUTES.AUTH_PROFILE_SETUP} />;
   }
 
