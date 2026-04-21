@@ -22,7 +22,7 @@ export default function LoginScreen() {
   // Redirect immediately if there is already an active session.
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      router.replace('/(tabs)');
+      router.replace('/');
     }
   }, [isLoaded, isSignedIn]);
 
@@ -34,14 +34,14 @@ export default function LoginScreen() {
 
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });
-        router.replace('/(tabs)');
+        router.replace('/');
       }
     } catch (err: any) {
       if (err?.code === 'ERR_CANCELED' || err?.message?.includes('cancel')) return;
 
       // Session already active — user is signed in, go to tabs.
       if (err?.errors?.[0]?.code === 'session_exists') {
-        router.replace('/(tabs)');
+        router.replace('/');
         return;
       }
 

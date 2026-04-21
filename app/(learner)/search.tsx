@@ -9,8 +9,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useApiRequest } from '../../services/api';
-import { API_ENDPOINTS } from '../../constants/api';
+import { useApiRequest } from '@/services/api';
+import { API_ENDPOINTS } from '@/constants/api';
 
 interface Tutor {
   id: string;
@@ -81,13 +81,13 @@ function TutorCard({ tutor }: Readonly<{ tutor: Tutor }>) {
 }
 
 /**
- * Tutor marketplace screen ("Buscar" tab).
+ * Tutor marketplace screen ("Buscar" tab in the learner area).
  *
  * Lists available tutors with a search field and subject filter chips.
  *
  * @author TutorConnect Team
  */
-export default function MarketplaceScreen() {
+export default function LearnerSearchScreen() {
   const api = useApiRequest();
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [loading, setLoading] = useState(true);

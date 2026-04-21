@@ -109,7 +109,7 @@ export function useLearnerRegistration() {
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });
         await syncWithBackend();
-        router.replace('/(tabs)');
+        router.replace('/');
       } else if (signUp?.status === 'missing_requirements') {
         router.push('/(auth)/profile-setup' as any);
       }
