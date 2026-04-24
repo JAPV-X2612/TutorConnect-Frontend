@@ -7,7 +7,7 @@ export default function SolicitudEnviadaScreen() {
   const router = useRouter();
 
   const handleGoHome = () => {
-    router.replace('/(auth)/register');
+    router.replace('/(tutor)/dashboard');
   };
 
   return (

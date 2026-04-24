@@ -29,14 +29,9 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tutor)" options={{ headerShown: false }} />
+          <Stack.Screen name="home" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/verify-email" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/profile-setup" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/tutor-register" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/tutor-certificaciones" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/solicitud-enviada" options={{ headerShown: false }} />
           <Stack.Screen name="oauth-native-callback" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>

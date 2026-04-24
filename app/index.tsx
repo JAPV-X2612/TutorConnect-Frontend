@@ -1,9 +1,10 @@
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth, useUser } from '@clerk/clerk-expo';
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function Index() {
   const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
 
   if (!isLoaded) {
     return (
@@ -14,7 +15,8 @@ export default function Index() {
   }
 
   if (isSignedIn) {
-    return <Redirect href="/(tabs)" />;
+    const role = user?.publicMetadata?.role as string | undefined;
+    return <Redirect href={role === 'TUTOR' ? '/(tutor)/dashboard' : '/(tabs)'} />;
   }
 
   return <Redirect href="/onboarding" />;
