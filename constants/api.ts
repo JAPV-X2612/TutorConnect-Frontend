@@ -20,13 +20,18 @@ export const API_ENDPOINTS = {
   // User endpoints
   usersCreate: `${API_BASE_URL}/users`,
   usersMe: `${API_BASE_URL}/users/me`,
+  // Auth endpoints
+  authMe: `${API_BASE_URL}/auth/me`,
+  authLogout: `${API_BASE_URL}/auth/logout`,
   // Tutor endpoints
   tutors: (subject?: string) =>
     subject
       ? `${API_BASE_URL}/tutors?subject=${encodeURIComponent(subject)}`
       : `${API_BASE_URL}/tutors`,
+  tutorMe: `${API_BASE_URL}/tutors/me`,
   tutorRegister: `${API_BASE_URL}/tutors/register`,
-  uploadCertification: `${API_BASE_URL}/tutors/certifications`,
+  uploadCertification: (tutorId: string) =>
+    `${API_BASE_URL}/tutors/${tutorId}/certificaciones`,
   deleteCertification: (certificationId: string) =>
     `${API_BASE_URL}/tutors/certifications/${certificationId}`,
 };

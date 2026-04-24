@@ -1,7 +1,8 @@
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApiRequest } from '@/services/api';
+import { useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -13,18 +14,26 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type BannerError = 'conflict' | 'network' | 'generic' | 'unauthorized';
+type BannerError = 'conflict' | 'network' | 'generic' | 'unauthorized' | 'no_email';
 
 const BANNER_MESSAGES: Record<BannerError, string> = {
   conflict: 'Ya tienes un perfil de tutor registrado.',
   network: 'Sin conexión. Verifica tu internet e intenta de nuevo.',
   generic: 'Completa todos los campos requeridos.',
   unauthorized: 'Debes iniciar sesión para registrar tu perfil de tutor.',
+  no_email: 'No se encontró un email en tu cuenta. Intenta iniciar sesión de nuevo.',
 };
 
 export default function TutorRegisterScreen() {
   const router = useRouter();
   const { post } = useApiRequest();
+  const { user, isLoaded } = useUser();
+
+  useEffect(() => {
+    if (isLoaded && !user) {
+      router.replace('/(auth)/register' as any);
+    }
+  }, [isLoaded, user]);
 
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
@@ -33,7 +42,6 @@ export default function TutorRegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [bannerError, setBannerError] = useState<BannerError | null>(null);
 
-  // Validation
   const nombreError =
     submitted && nombre.trim().length < 2 ? 'Requerido, mín 2 caracteres' : null;
   const apellidoError =
@@ -47,17 +55,27 @@ export default function TutorRegisterScreen() {
 
     if (!isValid) return;
 
+    const email = user?.primaryEmailAddress?.emailAddress;
+    if (!email) {
+      setBannerError('no_email');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await post(API_ENDPOINTS.tutorRegister, {
+        email,
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         descripcion: descripcion.trim() || null,
       });
 
       if (response.status === 201 || response.status === 200) {
-        // Navigate to certification upload screen
-        router.push('/(auth)/tutor-certificaciones' as any);
+        const tutorId = (response.data as { id?: string })?.id;
+        router.push({
+          pathname: '/(auth)/tutor-certificaciones' as any,
+          params: { tutorId },
+        });
       } else if (response.status === 409) {
         setBannerError('conflict');
       } else if (response.status === 401) {
@@ -73,6 +91,8 @@ export default function TutorRegisterScreen() {
       setLoading(false);
     }
   };
+
+  if (!isLoaded || !user) return null;
 
   return (
     <KeyboardAvoidingView

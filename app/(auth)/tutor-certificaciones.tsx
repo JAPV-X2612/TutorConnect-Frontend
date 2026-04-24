@@ -2,7 +2,7 @@ import { API_ENDPOINTS } from '@/constants/api';
 import { useApiRequest } from '@/services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -32,6 +32,7 @@ interface CertificationFile {
 export default function TutorCertificacionesScreen() {
   const router = useRouter();
   const { post } = useApiRequest();
+  const { tutorId } = useLocalSearchParams<{ tutorId: string }>();
 
   const [certifications, setCertifications] = useState<CertificationFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -105,7 +106,7 @@ export default function TutorCertificacionesScreen() {
         type: file.mimeType,
       } as any);
 
-      const response = await post(API_ENDPOINTS.uploadCertification, formData, true);
+      const response = await post(API_ENDPOINTS.uploadCertification(tutorId!), formData, true);
 
       if (response.status === 201 || response.status === 200) {
         setCertifications((prev) =>
