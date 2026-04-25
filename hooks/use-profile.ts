@@ -36,13 +36,9 @@ export function useProfile() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoaded) {
-      console.log('[useProfile] waiting for Clerk auth to load');
-      return;
-    }
+    if (!authLoaded) return;
 
     if (!isSignedIn) {
-      console.log('[useProfile] not signed in — skipping fetch');
       setProfile(null);
       setError(null);
       setLoading(false);
@@ -52,21 +48,9 @@ export function useProfile() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    console.log('[useProfile] fetching /users/me...');
 
     api.get<UserProfile>(API_ENDPOINTS.usersMe).then((result) => {
-      if (cancelled) {
-        console.log('[useProfile] fetch cancelled (component unmounted)');
-        return;
-      }
-      console.log('[useProfile] fetch result:', {
-        status: result.status,
-        hasData: !!result.data,
-        error: result.error,
-        dataKeys: result.data ? Object.keys(result.data) : [],
-        role: result.data?.role,
-        rolePresent: result.data != null && 'role' in result.data,
-      });
+      if (cancelled) return;
       if (result.error || !result.data) {
         setError('No se pudo cargar el perfil.');
         setProfile(null);
