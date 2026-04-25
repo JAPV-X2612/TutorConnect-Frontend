@@ -11,7 +11,7 @@ import { useProfile } from '@/hooks/use-profile';
  * - Clerk not loaded → spinner
  * - Not signed in → `/onboarding`
  * - Signed in, profile loading → spinner
- * - Signed in, no backend profile → `/(auth)/profile-setup`
+ * - Signed in, no backend profile → `/onboarding` (start role-specific flow)
  * - Signed in, profile resolved → role-specific home
  *
  * All post-authentication flows (login, OAuth callback, email verification,
@@ -37,13 +37,13 @@ export default function Index() {
   }
 
   if (profileError || !profile) {
-    return <Redirect href={ROUTES.AUTH_PROFILE_SETUP} />;
+    return <Redirect href={ROUTES.ONBOARDING} />;
   }
 
-  // Defensive: if the backend omits the role field, route to profile-setup
-  // rather than the default home (which would loop through RoleGuard).
+  // Defensive: if the backend omits the role field, send the user back to
+  // onboarding to complete the proper role-specific registration flow.
   if (!profile.role) {
-    return <Redirect href={ROUTES.AUTH_PROFILE_SETUP} />;
+    return <Redirect href={ROUTES.ONBOARDING} />;
   }
 
   return <Redirect href={homeRouteForRole(profile.role)} />;

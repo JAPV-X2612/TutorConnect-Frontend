@@ -40,11 +40,11 @@ export function RoleGuard({
     return <Redirect href={ROUTES.ONBOARDING} />;
   }
 
-  // Defensive: if the backend omits the role field, fall back to profile-setup
-  // rather than redirecting to the default home (which would match the same
-  // guard and cause an infinite loop).
+  // Defensive: if the backend omits the role field, fall back to onboarding
+  // so the user can complete the proper role-specific registration. Avoids
+  // looping back to the default home which would re-enter this same guard.
   if (!profile.role) {
-    return <Redirect href={ROUTES.AUTH_PROFILE_SETUP} />;
+    return <Redirect href={ROUTES.ONBOARDING} />;
   }
 
   if (profile.role !== expected) {

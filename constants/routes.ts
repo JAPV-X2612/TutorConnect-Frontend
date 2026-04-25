@@ -16,7 +16,6 @@ export const ROUTES = {
   // Auth
   AUTH_LOGIN: '/(auth)/login',
   AUTH_REGISTER: '/(auth)/register',
-  AUTH_PROFILE_SETUP: '/(auth)/profile-setup',
   AUTH_TUTOR_REGISTER: '/(auth)/tutor-register',
   AUTH_TUTOR_CERTIFICATIONS: '/(auth)/tutor-certificaciones',
   AUTH_SOLICITUD_ENVIADA: '/(auth)/solicitud-enviada',
