@@ -19,7 +19,7 @@ export default function LoginScreen() {
   const [bannerError, setBannerError] = useState<BannerError | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Redirect immediately if there is already an active session.
+  // Redirect immediately if there is already an active session; index handles role routing.
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       router.replace('/');

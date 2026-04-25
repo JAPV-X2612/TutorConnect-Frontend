@@ -24,15 +24,6 @@ export default function Index() {
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { profile, loading: profileLoading, error: profileError } = useProfile();
 
-  console.log('[app/index] state:', {
-    authLoaded,
-    isSignedIn,
-    profileLoading,
-    profileError,
-    hasProfile: !!profile,
-    role: profile?.role,
-  });
-
   if (!authLoaded || (isSignedIn && profileLoading)) {
     return (
       <View className="flex-1 items-center justify-center bg-background">

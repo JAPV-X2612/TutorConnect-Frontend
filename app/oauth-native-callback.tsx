@@ -1,8 +1,17 @@
+import { useAuth } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@clerk/clerk-expo';
 
+/**
+ * Clerk OAuth completion handler.
+ *
+ * Routing decisions live exclusively in `app/index.tsx` — this screen simply
+ * redirects there once the Clerk session is established so role resolution
+ * happens in a single place.
+ *
+ * @author TutorConnect Team
+ */
 export default function OAuthNativeCallback() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
@@ -12,7 +21,7 @@ export default function OAuthNativeCallback() {
     if (isSignedIn) {
       router.replace('/');
     }
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, router]);
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
