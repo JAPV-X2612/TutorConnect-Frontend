@@ -1,176 +1,86 @@
-import { API_ENDPOINTS } from '@/constants/api';
-import { useApiRequest } from '@/services/api';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTutorRegistration } from '@/hooks/use-tutor-registration';
 
-type BannerError = 'conflict' | 'network' | 'generic' | 'unauthorized';
-
-const BANNER_MESSAGES: Record<BannerError, string> = {
-  conflict: 'Ya tienes un perfil de tutor registrado.',
-  network: 'Sin conexión. Verifica tu internet e intenta de nuevo.',
-  generic: 'Completa todos los campos requeridos.',
-  unauthorized: 'Debes iniciar sesión para registrar tu perfil de tutor.',
-};
+const BENEFITS = [
+  { icon: 'people-outline', text: 'Llega a estudiantes que buscan tu conocimiento' },
+  { icon: 'calendar-outline', text: 'Gestiona tu disponibilidad libremente' },
+  { icon: 'wallet-outline', text: 'Define el precio de cada curso que ofrezcas' },
+  { icon: 'shield-checkmark-outline', text: 'Perfil verificado con certificaciones' },
+];
 
 export default function TutorRegisterScreen() {
   const router = useRouter();
-  const { post } = useApiRequest();
-
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [bannerError, setBannerError] = useState<BannerError | null>(null);
-
-  // Validation
-  const nombreError =
-    submitted && nombre.trim().length < 2 ? 'Requerido, mín 2 caracteres' : null;
-  const apellidoError =
-    submitted && apellido.trim().length < 2 ? 'Requerido, mín 2 caracteres' : null;
-
-  const isValid = nombre.trim().length >= 2 && apellido.trim().length >= 2;
-
-  const handleContinue = async () => {
-    setSubmitted(true);
-    setBannerError(null);
-
-    if (!isValid) return;
-
-    setLoading(true);
-    try {
-      const response = await post(API_ENDPOINTS.tutorRegister, {
-        nombre: nombre.trim(),
-        apellido: apellido.trim(),
-        descripcion: descripcion.trim() || null,
-      });
-
-      if (response.status === 201 || response.status === 200) {
-        // Navigate to certification upload screen
-        router.push('/(auth)/tutor-certificaciones' as any);
-      } else if (response.status === 409) {
-        setBannerError('conflict');
-      } else if (response.status === 401) {
-        setBannerError('unauthorized');
-      } else if (response.status === 0) {
-        setBannerError('network');
-      } else {
-        setBannerError('generic');
-      }
-    } catch (err) {
-      setBannerError('network');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { loading, errorMessage, handleRegister } = useTutorRegistration();
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <SafeAreaView className="flex-1 bg-background">
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          scrollEnabled={true}
-          className="flex-1 px-6"
-        >
-          <View className="pt-8 pb-4">
-            <Text className="text-3xl font-bold text-text-primary mb-2">
-              Registro de Tutor
-            </Text>
-            <Text className="text-base text-text-muted">
-              Cuéntanos sobre ti y tus certificaciones.
-            </Text>
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-row items-center px-4 pt-2 pb-1">
+        <TouchableOpacity onPress={() => router.back()} className="p-1">
+          <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
+        </TouchableOpacity>
+      </View>
+
+      <View className="flex-1 px-6 justify-between pb-8">
+        <View>
+          <View className="w-16 h-16 rounded-2xl bg-primary/10 items-center justify-center mt-4 mb-5">
+            <Ionicons name="school-outline" size={32} color="#006A75" />
           </View>
 
-          {bannerError && (
-            <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">
-              <Text className="text-red-700 text-sm">{BANNER_MESSAGES[bannerError]}</Text>
+          <Text className="text-3xl font-bold text-text-primary mb-2">
+            Conviértete en tutor
+          </Text>
+          <Text className="text-base text-text-muted leading-6 mb-8">
+            Registra tu perfil, crea tus cursos con su propio precio y empieza a conectar con estudiantes.
+          </Text>
+
+          <View className="gap-4 mb-8">
+            {BENEFITS.map((b) => (
+              <View key={b.icon} className="flex-row items-center gap-3">
+                <View className="w-9 h-9 rounded-full bg-primary/10 items-center justify-center flex-shrink-0">
+                  <Ionicons name={b.icon as any} size={18} color="#006A75" />
+                </View>
+                <Text className="text-sm text-text-primary flex-1">{b.text}</Text>
+              </View>
+            ))}
+          </View>
+
+          {errorMessage ? (
+            <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <Text className="text-red-700 text-sm">{errorMessage}</Text>
             </View>
-          )}
+          ) : null}
+        </View>
 
-          {/* Nombre */}
-          <View className="mb-5">
-            <TextInput
-              className={`bg-white border rounded-xl px-4 py-3.5 text-base text-text-primary ${
-                nombreError ? 'border-red-400' : 'border-border'
-              }`}
-              placeholder="Tu nombre"
-              autoCapitalize="words"
-              autoCorrect={false}
-              value={nombre}
-              onChangeText={setNombre}
-            />
-            {nombreError && (
-              <Text className="text-red-500 text-xs mt-1 ml-1">{nombreError}</Text>
-            )}
-          </View>
-
-          {/* Apellido */}
-          <View className="mb-5">
-            <TextInput
-              className={`bg-white border rounded-xl px-4 py-3.5 text-base text-text-primary ${
-                apellidoError ? 'border-red-400' : 'border-border'
-              }`}
-              placeholder="Tu apellido"
-              autoCapitalize="words"
-              autoCorrect={false}
-              value={apellido}
-              onChangeText={setApellido}
-            />
-            {apellidoError && (
-              <Text className="text-red-500 text-xs mt-1 ml-1">{apellidoError}</Text>
-            )}
-          </View>
-
-          {/* Descripción */}
-          <View className="mb-8">
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-sm text-text-muted">Descripción (Opcional)</Text>
-              <Text className="text-xs text-text-muted">{descripcion.length}/500</Text>
-            </View>
-            <TextInput
-              className="bg-white border border-border rounded-xl px-4 py-3.5 text-base text-text-primary"
-              placeholder="Cuéntanos sobre tu experiencia..."
-              multiline
-              numberOfLines={4}
-              maxLength={500}
-              value={descripcion}
-              onChangeText={setDescripcion}
-              textAlignVertical="top"
-            />
-          </View>
-
-          {/* Continue Button */}
+        <View className="gap-3">
           <TouchableOpacity
-            onPress={handleContinue}
-            disabled={!isValid || loading}
+            onPress={handleRegister}
+            disabled={loading}
             activeOpacity={0.85}
-            className={`rounded-full py-4 items-center ${
-              isValid ? 'bg-primary' : 'bg-secondary opacity-40'
-            }`}
+            className="flex-row items-center justify-center gap-3 bg-white border border-border rounded-full py-4 shadow-sm"
           >
-            <Text
-              className={`text-base font-semibold ${
-                isValid ? 'text-primary-foreground' : 'text-text-muted'
-              }`}
-            >
-              {loading ? 'Enviando...' : 'Continuar'}
+            {loading ? (
+              <ActivityIndicator color="#4285F4" />
+            ) : (
+              <>
+                <Ionicons name="logo-google" size={20} color="#4285F4" />
+                <Text className="text-base font-semibold text-text-primary">
+                  Continuar con Google
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push('/(auth)/login' as any)} disabled={loading} className="items-center py-3">
+            <Text className="text-sm text-text-muted">
+              ¿Ya tienes cuenta?{' '}
+              <Text className="text-primary font-semibold">Inicia sesión</Text>
             </Text>
           </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }

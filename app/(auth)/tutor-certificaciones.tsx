@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@/constants/api';
+import { getTutorOnboarding } from '@/hooks/use-tutor-onboarding';
 import { useApiRequest } from '@/services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -105,7 +106,11 @@ export default function TutorCertificacionesScreen() {
         type: file.mimeType,
       } as any);
 
-      const response = await post(API_ENDPOINTS.uploadCertification, formData, true);
+      const { tutorId } = getTutorOnboarding();
+      const uploadUrl = tutorId
+        ? API_ENDPOINTS.uploadCertification(tutorId)
+        : API_ENDPOINTS.uploadCertification('me');
+      const response = await post(uploadUrl, formData, true);
 
       if (response.status === 201 || response.status === 200) {
         setCertifications((prev) =>

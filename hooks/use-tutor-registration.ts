@@ -1,30 +1,34 @@
 import { useState } from 'react';
-import { useOAuth } from '@clerk/clerk-expo';
+import { useOAuth, useClerk } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
+import { resetTutorOnboarding, setTutorOnboarding } from './use-tutor-onboarding';
 
-export type LearnerAuthError = 'network' | 'generic' | 'canceled';
+export type TutorAuthError = 'network' | 'generic' | 'canceled';
 
-const ERROR_MESSAGES: Record<LearnerAuthError, string> = {
+const ERROR_MESSAGES: Record<TutorAuthError, string> = {
   network: 'Sin conexión. Verifica tu internet e intenta de nuevo.',
   generic: 'Ocurrió un error con Google. Intenta de nuevo.',
   canceled: '',
 };
 
-export function useLearnerRegistration() {
+export function useTutorRegistration() {
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+  const clerk = useClerk();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<LearnerAuthError | null>(null);
+  const [error, setError] = useState<TutorAuthError | null>(null);
 
   const handleRegister = async () => {
     setError(null);
     setLoading(true);
     try {
+      resetTutorOnboarding();
+
       const { createdSessionId, signUp, setActive } = await startOAuthFlow();
       let sessionId: string | null = createdSessionId ?? null;
 
       if (!sessionId && signUp?.status === 'missing_requirements') {
-        const completed = await signUp.update({});
+        const completed = await signUp.update({ unsafeMetadata: { role: 'TUTOR' } });
         sessionId = completed.createdSessionId ?? null;
       }
 
@@ -32,9 +36,12 @@ export function useLearnerRegistration() {
 
       await setActive!({ session: sessionId });
 
-      // Navigate to profile-setup where the user picks their interests
-      // and the platform profile is created.
-      router.push('/(auth)/profile-setup' as any);
+      setTutorOnboarding({
+        nombre: clerk.user?.firstName ?? '',
+        apellido: clerk.user?.lastName ?? '',
+      });
+
+      router.push('/(auth)/tutor-detalles' as any);
     } catch (err: any) {
       if (err?.code === 'ERR_CANCELED' || err?.message?.includes('cancel')) {
         setError('canceled');

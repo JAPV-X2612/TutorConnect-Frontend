@@ -75,6 +75,7 @@ export const useApiRequest = () => {
         config.body = body;
       }
 
+      console.log(`[API] ${method} ${endpoint}`);
       const response = await fetch(endpoint, config);
 
       // Handle response based on content type
