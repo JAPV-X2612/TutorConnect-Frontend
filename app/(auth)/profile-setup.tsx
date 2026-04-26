@@ -68,7 +68,7 @@ export default function ProfileSetupScreen() {
           // 201 = created, 409 = already exists — both are acceptable
         }
 
-        router.replace('/(tabs)');
+        router.replace('/');
       }
     } catch (err: any) {
       if (!err?.errors) {
