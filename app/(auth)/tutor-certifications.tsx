@@ -80,7 +80,7 @@ function FileStatusBadge({
 
 export default function TutorCertificationsScreen() {
   const router = useRouter();
-  const { post } = useApiRequest();
+  const { get, post } = useApiRequest();
   const { tutorId } = useLocalSearchParams<{ tutorId: string }>();
 
   const [certifications, setCertifications] = useState<CertificationFile[]>([]);
@@ -190,7 +190,13 @@ export default function TutorCertificationsScreen() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      router.replace('/(auth)/solicitud-enviada' as any);
+      // Re-confirm with backend that certifications were recorded before navigating.
+      const result = await get<{ hasCertificaciones?: boolean }>(API_ENDPOINTS.tutorMe);
+      if (result.data?.hasCertificaciones) {
+        router.replace('/(tutor)/dashboard' as any);
+      } else {
+        router.replace('/(auth)/solicitud-enviada' as any);
+      }
     } finally {
       setSubmitting(false);
     }

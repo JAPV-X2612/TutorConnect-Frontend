@@ -9,8 +9,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useApiRequest } from '../../services/api';
-import { API_ENDPOINTS } from '../../constants/api';
+import { useApiRequest } from '@/services/api';
+import { API_ENDPOINTS } from '@/constants/api';
 
 interface Tutor {
   id: string;
@@ -31,10 +31,11 @@ function getInitials(nombre: string, apellido: string): string {
 }
 
 function getAvatarColor(name: string): string {
-  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+  const code = name.codePointAt(0) ?? 0;
+  return AVATAR_COLORS[code % AVATAR_COLORS.length];
 }
 
-function TutorCard({ tutor }: { tutor: Tutor }) {
+function TutorCard({ tutor }: Readonly<{ tutor: Tutor }>) {
   const initials = getInitials(tutor.nombre, tutor.apellido);
   const avatarColor = getAvatarColor(tutor.nombre);
 
@@ -68,18 +69,25 @@ function TutorCard({ tutor }: { tutor: Tutor }) {
         <View className="flex-row items-center gap-1">
           <Text className="text-yellow-500 text-sm">★</Text>
           <Text className="text-text-primary text-sm font-medium">
-            {tutor.rating != null ? tutor.rating.toFixed(1) : '—'}
+            {tutor.rating?.toFixed(1) ?? '—'}
           </Text>
         </View>
         <Text className="text-primary font-bold text-base">
-          {tutor.precioHora != null ? `$${tutor.precioHora}/h` : 'Precio a consultar'}
+          {tutor.precioHora == null ? 'Precio a consultar' : `$${tutor.precioHora}/h`}
         </Text>
       </View>
     </View>
   );
 }
 
-export default function MarketplaceScreen() {
+/**
+ * Tutor marketplace screen ("Buscar" tab in the learner area).
+ *
+ * Lists available tutors with a search field and subject filter chips.
+ *
+ * @author TutorConnect Team
+ */
+export default function LearnerSearchScreen() {
   const api = useApiRequest();
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,6 +111,7 @@ export default function MarketplaceScreen() {
 
   useEffect(() => {
     fetchTutors(selectedSubject);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubject]);
 
   const filteredTutors = search.trim()
@@ -110,6 +119,46 @@ export default function MarketplaceScreen() {
         `${t.nombre} ${t.apellido}`.toLowerCase().includes(search.toLowerCase()),
       )
     : tutors;
+
+  const renderBody = () => {
+    if (loading) {
+      return (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#006A75" />
+        </View>
+      );
+    }
+    if (error) {
+      return (
+        <View className="flex-1 items-center justify-center px-6">
+          <Text className="text-red-600 text-center text-base mb-4">{error}</Text>
+          <TouchableOpacity
+            onPress={() => fetchTutors(selectedSubject)}
+            className="bg-primary rounded-full px-6 py-3"
+          >
+            <Text className="text-primary-foreground font-semibold">Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <FlatList
+        data={filteredTutors}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+        renderItem={({ item }) => <TutorCard tutor={item} />}
+        ListEmptyComponent={
+          <View className="items-center justify-center pt-20">
+            <Text className="text-text-muted text-base text-center">
+              {search
+                ? 'No se encontraron tutores con ese nombre.'
+                : 'No hay tutores disponibles en esta categoría.'}
+            </Text>
+          </View>
+        }
+      />
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -153,37 +202,7 @@ export default function MarketplaceScreen() {
         ))}
       </ScrollView>
 
-      {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#006A75" />
-        </View>
-      ) : error ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-red-600 text-center text-base mb-4">{error}</Text>
-          <TouchableOpacity
-            onPress={() => fetchTutors(selectedSubject)}
-            className="bg-primary rounded-full px-6 py-3"
-          >
-            <Text className="text-primary-foreground font-semibold">Reintentar</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredTutors}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
-          renderItem={({ item }) => <TutorCard tutor={item} />}
-          ListEmptyComponent={
-            <View className="items-center justify-center pt-20">
-              <Text className="text-text-muted text-base text-center">
-                {search
-                  ? 'No se encontraron tutores con ese nombre.'
-                  : 'No hay tutores disponibles en esta categoría.'}
-              </Text>
-            </View>
-          }
-        />
-      )}
+      {renderBody()}
     </SafeAreaView>
   );
 }

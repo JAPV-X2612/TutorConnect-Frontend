@@ -4,27 +4,26 @@ import React from 'react';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { RoleGuard } from '@/components/layout/role-guard';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /**
- * Tab layout for the TUTOR role area.
+ * Tab layout for the LEARNER role area.
  *
- * Wraps the three tutor-facing screens (dashboard, sessions, profile) in a
- * {@link RoleGuard} so that a learner reaching any of these routes is
+ * Wraps the three learner-facing screens (dashboard, search, profile) in a
+ * {@link RoleGuard} so that a tutor reaching any of these routes is
  * redirected to their own home.
  *
  * @author TutorConnect Team
  */
-export default function TutorTabsLayout() {
+export default function LearnerTabsLayout() {
+  const colorScheme = useColorScheme();
+
   return (
-    <RoleGuard expected="TUTOR">
+    <RoleGuard expected="LEARNER">
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: '#006A75',
-          tabBarInactiveTintColor: '#64748B',
-          tabBarStyle: {
-            backgroundColor: '#FFFFFF',
-            borderTopColor: '#E2E8F0',
-          },
+          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
           headerShown: false,
           tabBarButton: HapticTab,
         }}
@@ -39,11 +38,11 @@ export default function TutorTabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="sessions"
+          name="search"
           options={{
-            title: 'Sesiones',
+            title: 'Buscar',
             tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="calendar" color={color} />
+              <IconSymbol size={28} name="magnifyingglass" color={color} />
             ),
           }}
         />

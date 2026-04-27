@@ -7,7 +7,8 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '@clerk/clerk-expo';
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -108,20 +109,24 @@ export default function TutorDashboard() {
   const { get } = useApiRequest();
   const [hasCertificaciones, setHasCertificaciones] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const check = async () => {
-      const result = await get<{ exists: boolean; hasCertificaciones?: boolean }>(
-        API_ENDPOINTS.tutorMe,
-      );
-      if (cancelled) return;
-      setHasCertificaciones(result.data?.hasCertificaciones ?? false);
-    };
-    check();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const check = async () => {
+        const result = await get<{ exists: boolean; hasCertificaciones?: boolean }>(
+          API_ENDPOINTS.tutorMe,
+        );
+        if (cancelled) return;
+        setHasCertificaciones(result.data?.hasCertificaciones ?? false);
+      };
+      check();
+      return () => {
+        cancelled = true;
+      };
+    // `get` recreates each render but its internal `getToken` is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
 
   const firstName = user?.firstName ?? user?.fullName?.split(' ')[0] ?? 'Tutor';
   const showSkeleton = isLoading || hasCertificaciones === null;

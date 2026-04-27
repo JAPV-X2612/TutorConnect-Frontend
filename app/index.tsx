@@ -1,52 +1,30 @@
-import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useAuth } from '@clerk/clerk-expo';
 import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useApiRequest } from '@/services/api';
-import { API_ENDPOINTS } from '@/constants/api';
-
-type ResolvedRole = 'TUTOR' | 'LEARNER' | 'NONE';
+import { homeRouteForRole, ROUTES } from '@/constants/routes';
+import { useProfile } from '@/hooks/use-profile';
 
 /**
- * Root entry point. Resolves the authenticated user's role and redirects
- * to the correct dashboard. Falls back to querying the backend when
- * Clerk's publicMetadata has not been populated by the server yet.
+ * Root entry redirector.
+ *
+ * Decision tree:
+ * - Clerk not loaded → spinner
+ * - Not signed in → `/onboarding`
+ * - Signed in, profile loading → spinner
+ * - Signed in, no backend profile → `/onboarding` (start role-specific flow)
+ * - Signed in, profile resolved → role-specific home
+ *
+ * All post-authentication flows (login, OAuth callback, email verification,
+ * learner sign-up) redirect here so that role-based routing lives in a
+ * single place.
+ *
+ * @author TutorConnect Team
  */
 export default function Index() {
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
-  const { user, isLoaded: userLoaded } = useUser();
-  const api = useApiRequest();
-  const [resolvedRole, setResolvedRole] = useState<ResolvedRole | null>(null);
+  const { profile, loading: profileLoading, error: profileError } = useProfile();
 
-  useEffect(() => {
-    if (!authLoaded || !userLoaded) return;
-
-    if (!isSignedIn) {
-      setResolvedRole('NONE');
-      return;
-    }
-
-    // Fast path: role already present in Clerk publicMetadata.
-    const metaRole = user?.publicMetadata?.role as string | undefined;
-    if (metaRole === 'TUTOR' || metaRole === 'LEARNER') {
-      setResolvedRole(metaRole);
-      return;
-    }
-
-    // Slow path: publicMetadata not set — query the backend for the authoritative role.
-    let cancelled = false;
-    const fetchRole = async () => {
-      const result = await api.get<{ role: 'TUTOR' | 'LEARNER' }>(API_ENDPOINTS.usersMe);
-      if (cancelled) return;
-      setResolvedRole(result.data?.role ?? 'NONE');
-    };
-    fetchRole();
-    return () => {
-      cancelled = true;
-    };
-  }, [authLoaded, userLoaded, isSignedIn]);
-
-  if (resolvedRole === null) {
+  if (!authLoaded || (isSignedIn && profileLoading)) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
         <ActivityIndicator size="large" color="#006A75" />
@@ -54,7 +32,19 @@ export default function Index() {
     );
   }
 
-  if (resolvedRole === 'TUTOR') return <Redirect href="/(tutor)/dashboard" />;
-  if (resolvedRole === 'LEARNER') return <Redirect href="/(tabs)" />;
-  return <Redirect href="/onboarding" />;
+  if (!isSignedIn) {
+    return <Redirect href={ROUTES.ONBOARDING} />;
+  }
+
+  if (profileError || !profile) {
+    return <Redirect href={ROUTES.ONBOARDING} />;
+  }
+
+  // Defensive: if the backend omits the role field, send the user back to
+  // onboarding to complete the proper role-specific registration flow.
+  if (!profile.role) {
+    return <Redirect href={ROUTES.ONBOARDING} />;
+  }
+
+  return <Redirect href={homeRouteForRole(profile.role)} />;
 }

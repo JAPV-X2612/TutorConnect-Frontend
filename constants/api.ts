@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
   authLogout: `${API_BASE_URL}/auth/logout`,
   // Dashboard endpoints
   tutorDashboard: `${API_BASE_URL}/dashboard/tutor`,
+  learnerDashboard: `${API_BASE_URL}/dashboard/learner`,
   // Tutor endpoints
   tutors: (subject?: string) =>
     subject
