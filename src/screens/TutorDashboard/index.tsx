@@ -1,6 +1,14 @@
+/**
+ * @file TutorDashboard/index.tsx
+ * @description Tutor dashboard screen — HU-07.
+ *   Displays a greeting, metric cards, and upcoming sessions.
+ * @author TutorConnect Team
+ */
+
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '@clerk/clerk-expo';
-import { useEffect } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -10,32 +18,46 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { AppHeader } from '@/src/components/ui/AppHeader';
+import { useApiRequest } from '@/services/api';
+import { API_ENDPOINTS } from '@/constants/api';
 import { useTutorDashboard } from '@/src/hooks/useTutorDashboard';
 import { EmptyStateTutor } from './components/EmptyStateTutor';
 import { MetricasGrid, MetricasSkeleton } from './components/MetricasGrid';
 import { ProximasSesiones } from './components/ProximasSesiones';
 
-// ─── App header ───────────────────────────────────────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────────────────
 
-function DashboardHeader() {
+const BG = '#FFFFFF';
+const DARK = '#0D2B22';
+const MUTED = '#6B8C82';
+const PRIMARY = '#006A75';
+
+// ─── Bell button for the dashboard header ────────────────────────────────────
+
+function BellButton() {
   return (
-    <View className="flex-row items-center justify-between px-5 py-3.5 bg-background">
-      <View className="flex-row items-center gap-2.5">
-        <View className="w-10 h-10 rounded-full bg-primary items-center justify-center">
-          <Ionicons name="school" size={20} color="#FFFFFF" />
-        </View>
-        <Text className="text-xl font-bold text-text-primary">TutorConnect</Text>
-      </View>
-      <TouchableOpacity className="p-1" activeOpacity={0.7}>
-        <Ionicons name="notifications-outline" size={24} color="#1A2E35" />
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 0.5,
+        borderColor: 'rgba(107,140,130,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Ionicons name="notifications-outline" size={18} color={DARK} />
+    </TouchableOpacity>
   );
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-function SkeletonLine({ w, h }: { w: string; h: string }) {
+function SkeletonLine({ w, h }: { w: number; h: number }) {
   const opacity = useSharedValue(1);
   useEffect(() => {
     opacity.value = withRepeat(
@@ -44,103 +66,109 @@ function SkeletonLine({ w, h }: { w: string; h: string }) {
       true,
     );
   }, [opacity]);
-  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View style={animStyle} className={`bg-gray-200 rounded-lg ${w} ${h}`} />;
+  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return (
+    <Animated.View
+      style={[anim, { width: w, height: h, backgroundColor: '#C2D9D3', borderRadius: 6 }]}
+    />
+  );
 }
 
 function DashboardSkeleton() {
   return (
     <>
-      <View className="px-5 pt-5 pb-3 gap-2">
-        <SkeletonLine w="w-48" h="h-7" />
-        <SkeletonLine w="w-64" h="h-4" />
+      <View style={{ paddingHorizontal: 20, paddingTop: 24, gap: 8, marginBottom: 4 }}>
+        <SkeletonLine w={180} h={26} />
+        <SkeletonLine w={240} h={16} />
       </View>
       <MetricasSkeleton />
-      <View className="mt-7 px-5 gap-3.5">
-        <SkeletonLine w="w-40" h="h-5" />
-        {[0, 1, 2].map((i) => (
-          <View key={i} className="flex-row items-center gap-3.5 py-3.5 border-b border-border">
-            <SkeletonLine w="w-13 rounded-full" h="h-13" />
-            <View className="flex-1 gap-2">
-              <SkeletonLine w="w-3/4" h="h-4" />
-              <SkeletonLine w="w-1/2" h="h-3" />
-              <SkeletonLine w="w-2/5" h="h-3" />
-            </View>
-          </View>
-        ))}
-      </View>
     </>
+  );
+}
+
+// ─── Greeting ─────────────────────────────────────────────────────────────────
+
+function Greeting({ firstName }: { firstName: string }) {
+  return (
+    <View style={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 8 }}>
+      <Text style={{ fontSize: 22, fontWeight: '700', color: DARK, marginBottom: 4 }}>
+        ¡Hola, {firstName}!
+      </Text>
+      <Text style={{ fontSize: 14, color: MUTED }}>
+        Aquí tienes el resumen de tu actividad de hoy.
+      </Text>
+    </View>
   );
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-/**
- * Tutor dashboard screen — HU-07.
- * Displays the app header, a greeting, a metrics section, and upcoming sessions.
- */
 export default function TutorDashboard() {
   const { user } = useUser();
   const { data, isLoading, error, refetch } = useTutorDashboard();
+  const { get } = useApiRequest();
+  const [hasCertificaciones, setHasCertificaciones] = useState<boolean | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const check = async () => {
+        const result = await get<{ exists: boolean; hasCertificaciones?: boolean }>(
+          API_ENDPOINTS.tutorMe,
+        );
+        if (cancelled) return;
+        setHasCertificaciones(result.data?.hasCertificaciones ?? false);
+      };
+      check();
+      return () => {
+        cancelled = true;
+      };
+    // `get` recreates each render but its internal `getToken` is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
 
   const firstName = user?.firstName ?? user?.fullName?.split(' ')[0] ?? 'Tutor';
-
-  const isNewTutor =
-    !isLoading &&
-    data !== null &&
-    data.metricas.total_sesiones === 0 &&
-    data.metricas.ingresos_totales === 0 &&
-    data.metricas.calificacion_promedio === null &&
-    data.proximas_sesiones.length === 0;
+  const showSkeleton = isLoading || hasCertificaciones === null;
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <DashboardHeader />
+    <SafeAreaView style={{ flex: 1, backgroundColor: BG }}>
+      <AppHeader right={<BellButton />} />
 
       <ScrollView
-        className="flex-1"
+        style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {isLoading ? (
+        {showSkeleton ? (
           <DashboardSkeleton />
         ) : error ? (
-          <View className="flex-1 items-center justify-center px-6 py-20">
-            <Text className="text-red-600 text-center text-base mb-4">{error}</Text>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <Text style={{ color: '#DC2626', textAlign: 'center', fontSize: 15, marginBottom: 16 }}>
+              {error}
+            </Text>
             <TouchableOpacity
               onPress={refetch}
-              className="bg-primary rounded-full px-6 py-3"
               activeOpacity={0.85}
+              style={{
+                backgroundColor: PRIMARY,
+                borderRadius: 999,
+                paddingHorizontal: 24,
+                paddingVertical: 12,
+              }}
             >
-              <Text className="text-primary-foreground font-semibold">Reintentar</Text>
+              <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Reintentar</Text>
             </TouchableOpacity>
           </View>
-        ) : isNewTutor ? (
+        ) : !hasCertificaciones ? (
           <>
-            <View className="px-5 pt-5 pb-3">
-              <Text className="text-2xl font-extrabold text-text-primary">
-                ¡Hola, {firstName}!
-              </Text>
-              <Text className="text-sm text-text-muted mt-1">
-                Aquí tienes el resumen de tu actividad de hoy.
-              </Text>
-            </View>
+            <Greeting firstName={firstName} />
             <EmptyStateTutor />
           </>
         ) : (
           <>
-            <View className="px-5 pt-5 pb-3">
-              <Text className="text-2xl font-extrabold text-text-primary">
-                ¡Hola, {firstName}!
-              </Text>
-              <Text className="text-sm text-text-muted mt-1">
-                Aquí tienes el resumen de tu actividad de hoy.
-              </Text>
-            </View>
-            <MetricasGrid
-              metricas={data!.metricas}
-              proximasCount={data!.proximas_sesiones.length}
-            />
+            <Greeting firstName={firstName} />
+            <MetricasGrid metricas={data!.metricas} />
             <ProximasSesiones
               sesiones={data!.proximas_sesiones}
               hasActivity={data!.metricas.total_sesiones > 0}

@@ -4,8 +4,6 @@ import React from 'react';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { RoleGuard } from '@/components/layout/role-guard';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /**
  * Tab layout for the TUTOR role area.
@@ -17,13 +15,16 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
  * @author TutorConnect Team
  */
 export default function TutorTabsLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <RoleGuard expected="TUTOR">
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          tabBarActiveTintColor: '#006A75',
+          tabBarInactiveTintColor: '#64748B',
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            borderTopColor: '#E2E8F0',
+          },
           headerShown: false,
           tabBarButton: HapticTab,
         }}
