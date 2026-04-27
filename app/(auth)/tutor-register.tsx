@@ -115,7 +115,7 @@ export default function TutorRegisterScreen() {
 
       if (result.data?.exists && result.data?.id) {
         router.replace({
-          pathname: '/(auth)/tutor-certificaciones' as any,
+          pathname: '/(auth)/tutor-certifications' as any,
           params: { tutorId: result.data.id },
         });
       } else {
@@ -162,19 +162,21 @@ export default function TutorRegisterScreen() {
       return;
     }
 
+    const payload = {
+      email,
+      nombre: nombre.trim(),
+      apellido: apellido.trim(),
+      descripcion: descripcion.trim() || undefined,
+    };
+
     setLoading(true);
     try {
-      const response = await post(API_ENDPOINTS.tutorRegister, {
-        email,
-        nombre: nombre.trim(),
-        apellido: apellido.trim(),
-        descripcion: descripcion.trim() || null,
-      });
+      const response = await post(API_ENDPOINTS.tutorRegister, payload);
 
       if (response.status === 201 || response.status === 200) {
         const tutorId = (response.data as { id?: string })?.id;
         router.push({
-          pathname: '/(auth)/tutor-certificaciones' as any,
+          pathname: '/(auth)/tutor-certifications' as any,
           params: { tutorId },
         });
       } else if (response.status === 409) {
@@ -182,7 +184,7 @@ export default function TutorRegisterScreen() {
         const me = await get<TutorMeResponse>(API_ENDPOINTS.tutorMe);
         if (me.data?.id) {
           router.push({
-            pathname: '/(auth)/tutor-certificaciones' as any,
+            pathname: '/(auth)/tutor-certifications' as any,
             params: { tutorId: me.data.id },
           });
         } else {
