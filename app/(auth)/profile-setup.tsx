@@ -48,7 +48,8 @@ export default function ProfileSetupScreen() {
         });
       }
 
-      router.replace('/(tabs)');
+      // Redirect through index so role-based routing resolves correctly
+      router.replace('/');
     } catch {
       setError('Ocurrió un error. Intenta de nuevo.');
     } finally {

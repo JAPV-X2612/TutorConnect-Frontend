@@ -79,9 +79,7 @@ export default function VerifyEmailScreen() {
       await signUp.attemptEmailAddressVerification({ code: fullCode });
       if (signUp.status === "complete") {
         await setActive({ session: signUp.createdSessionId });
-        router.replace("/(tabs)");
-      } else {
-        router.replace("/onboarding");
+        router.replace('/');
       }
     } catch (err: any) {
       const clerkCode: string = err?.errors?.[0]?.code ?? "";

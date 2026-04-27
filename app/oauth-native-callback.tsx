@@ -1,24 +1,30 @@
-import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { useRouter } from "expo-router";
-import { useAuth, useUser } from "@clerk/clerk-expo";
+import { useAuth } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
+/**
+ * Clerk OAuth completion handler.
+ *
+ * Routing decisions live exclusively in `app/index.tsx` — this screen simply
+ * redirects there once the Clerk session is established so role resolution
+ * happens in a single place.
+ *
+ * @author TutorConnect Team
+ */
 export default function OAuthNativeCallback() {
   const { isSignedIn, isLoaded } = useAuth();
-  const { user, isLoaded: userLoaded } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoaded || !userLoaded) return;
+    if (!isLoaded) return;
     if (isSignedIn) {
-      router.replace("/(tabs)");
-    } else {
-      router.replace("/onboarding");
+      router.replace('/');
     }
-  }, [isSignedIn, isLoaded, userLoaded, user, router]);
+  }, [isLoaded, isSignedIn, router]);
 
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <ActivityIndicator size="large" color="#006A75" />
     </View>
   );

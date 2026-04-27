@@ -21,6 +21,12 @@ export const API_ENDPOINTS = {
   usersCreate: `${API_BASE_URL}/users`,
   usersMe: `${API_BASE_URL}/users/me`,
   usersMeUpdate: `${API_BASE_URL}/users/me`,
+  // Auth endpoints
+  authMe: `${API_BASE_URL}/auth/me`,
+  authLogout: `${API_BASE_URL}/auth/logout`,
+  // Dashboard endpoints
+  tutorDashboard: `${API_BASE_URL}/dashboard/tutor`,
+  learnerDashboard: `${API_BASE_URL}/dashboard/learner`,
   // Tutor endpoints
   tutors: (subject?: string) =>
     subject

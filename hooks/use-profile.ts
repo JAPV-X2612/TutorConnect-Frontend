@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/clerk-expo';
 import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 
@@ -27,26 +28,57 @@ export interface UpdateProfilePayload {
   interests?: string[];
 }
 
+/**
+ * Fetches and manages the authenticated user's platform profile.
+ *
+ * Skips the network call when Clerk is not loaded or the user is not signed
+ * in. Exposes `update()` for in-place edits and `refetch()` for manual
+ * reloads (e.g. after screen focus).
+ *
+ * @author TutorConnect Team
+ */
 export function useProfile() {
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const api = useApiRequest();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetch = useCallback(async () => {
+  const fetchProfile = () => {
+    if (!authLoaded) return;
+
+    if (!isSignedIn) {
+      setProfile(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    const result = await api.get<UserProfile>(API_ENDPOINTS.usersMe);
-    if (result.error || !result.data) {
-      setError('No se pudo cargar el perfil.');
-    } else {
-      setProfile(result.data);
-    }
-    setLoading(false);
-  }, []);
 
-  useEffect(() => { fetch(); }, [fetch]);
+    api.get<UserProfile>(API_ENDPOINTS.usersMe).then((result) => {
+      if (cancelled) return;
+      if (result.error || !result.data) {
+        setError('No se pudo cargar el perfil.');
+        setProfile(null);
+      } else {
+        setProfile(result.data);
+      }
+      setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  };
+
+  useEffect(() => {
+    const cleanup = fetchProfile();
+    return cleanup;
+    // `api` identity changes each render; its underlying Clerk getToken is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoaded, isSignedIn]);
 
   const update = async (payload: UpdateProfilePayload): Promise<boolean> => {
     setSaving(true);
@@ -61,5 +93,5 @@ export function useProfile() {
     return true;
   };
 
-  return { profile, loading, saving, error, refetch: fetch, update };
+  return { profile, loading, saving, error, refetch: fetchProfile, update };
 }

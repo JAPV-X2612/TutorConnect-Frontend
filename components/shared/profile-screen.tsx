@@ -12,12 +12,30 @@ import { useTutorProfile, UpdateTutorPayload } from '@/hooks/use-tutor-profile';
 import { SelectInput } from '@/components/ui/select-input';
 import { CITIES, COURSE_CATEGORIES } from '@/constants/registration-options';
 
-// ── Shared components ─────────────────────────────────────────────────────────
+// ── Shared sub-components ─────────────────────────────────────────────────────
 
-function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+function AvatarPlaceholder({ name }: Readonly<{ name: string }>) {
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
   return (
-    <View className="flex-row items-start py-3 border-b border-border">
-      <Ionicons name={icon as any} size={18} color="#006A75" style={{ marginTop: 1 }} />
+    <View className="w-20 h-20 rounded-full bg-primary items-center justify-center">
+      <Text className="text-white text-3xl font-bold">{initial}</Text>
+    </View>
+  );
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+}: Readonly<{ icon: string; label: string; value: string }>) {
+  return (
+    <View className="flex-row items-start py-3 border-b border-border last:border-b-0">
+      <Ionicons
+        name={icon as keyof typeof Ionicons.glyphMap}
+        size={18}
+        color="#006A75"
+        style={{ marginTop: 1 }}
+      />
       <View className="ml-3 flex-1">
         <Text className="text-text-muted text-xs mb-0.5">{label}</Text>
         <Text className="text-text-primary text-sm font-medium">{value}</Text>
@@ -97,11 +115,8 @@ function LearnerProfileScreen() {
         </View>
 
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-          {/* Avatar */}
           <View className="mx-6 mt-2 mb-5 bg-white rounded-2xl p-5 border border-border items-center">
-            <View className="w-20 h-20 rounded-full bg-primary items-center justify-center">
-              <Text className="text-white text-3xl font-bold">{fullName.charAt(0).toUpperCase()}</Text>
-            </View>
+            <AvatarPlaceholder name={fullName} />
             <Text className="text-text-primary text-xl font-bold mt-3">{fullName}</Text>
             <Text className="text-text-muted text-sm mt-1">{user?.emailAddresses[0]?.emailAddress}</Text>
             <View className="mt-2 bg-primary/10 px-3 py-1 rounded-full">
@@ -151,7 +166,6 @@ function LearnerProfileScreen() {
                       placeholder="Ej. Ingeniería, Gastronomía, Chef..."
                       value={form.academicProgram} onChangeText={(v) => setForm({ ...form, academicProgram: v })} />
                   </View>
-
                   <View>
                     <Text className="text-xs text-text-muted mb-2 uppercase tracking-wide font-semibold">
                       ¿Qué quieres aprender?
@@ -169,7 +183,6 @@ function LearnerProfileScreen() {
                       })}
                     </View>
                   </View>
-
                   <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.85}
                     className="bg-primary rounded-full py-3.5 items-center flex-row justify-center gap-2">
                     {saving ? <ActivityIndicator color="white" size="small" /> : (
@@ -240,7 +253,6 @@ function TutorProfileScreen() {
   const { profile, loading, saving, error, update } = useTutorProfile();
   const [editing, setEditing] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
-
   const [form, setForm] = useState<UpdateTutorPayload>({});
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -296,11 +308,8 @@ function TutorProfileScreen() {
         </View>
 
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-          {/* Avatar */}
           <View className="mx-6 mt-2 mb-5 bg-white rounded-2xl p-5 border border-border items-center">
-            <View className="w-20 h-20 rounded-full bg-primary items-center justify-center">
-              <Text className="text-white text-3xl font-bold">{fullName.charAt(0).toUpperCase()}</Text>
-            </View>
+            <AvatarPlaceholder name={fullName} />
             <Text className="text-text-primary text-xl font-bold mt-3">{fullName}</Text>
             <Text className="text-text-muted text-sm mt-1">{profile?.user?.email ?? user?.emailAddresses[0]?.emailAddress}</Text>
             <View className={`mt-2 px-3 py-1 rounded-full ${profile?.estado === 'VERIFICADO' ? 'bg-green-100' : 'bg-amber-100'}`}>
@@ -316,7 +325,6 @@ function TutorProfileScreen() {
             </View>
           )}
 
-          {/* Info / Edit form */}
           <View className="mx-6 bg-white rounded-2xl px-5 border border-border mb-4">
             <Text className="text-text-muted text-xs font-semibold pt-4 pb-3 uppercase tracking-wide">
               Información personal
@@ -329,7 +337,6 @@ function TutorProfileScreen() {
                     <Text className="text-red-700 text-sm">{saveError}</Text>
                   </View>
                 )}
-
                 <View className="flex-row gap-3">
                   <View className="flex-1">
                     <Text className="text-xs text-text-muted mb-1.5 uppercase tracking-wide font-semibold">Nombre</Text>
@@ -342,7 +349,6 @@ function TutorProfileScreen() {
                       value={form.apellido} onChangeText={(v) => setForm({ ...form, apellido: v })} autoCapitalize="words" />
                   </View>
                 </View>
-
                 <View className="flex-row gap-3">
                   <View className="flex-1">
                     <Text className="text-xs text-text-muted mb-1.5 uppercase tracking-wide font-semibold">Cédula</Text>
@@ -354,7 +360,6 @@ function TutorProfileScreen() {
                     <SelectInput options={CITIES} value={form.ciudad ?? ''} onChange={(v) => setForm({ ...form, ciudad: v })} placeholder="Selecciona" />
                   </View>
                 </View>
-
                 <View>
                   <Text className="text-xs text-text-muted mb-1.5 uppercase tracking-wide font-semibold">Bibliografía</Text>
                   <TextInput
@@ -365,7 +370,6 @@ function TutorProfileScreen() {
                     style={{ minHeight: 100 }}
                   />
                 </View>
-
                 <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.85}
                   className="bg-primary rounded-full py-3.5 items-center flex-row justify-center gap-2">
                   {saving ? <ActivityIndicator color="white" size="small" /> : (
@@ -417,7 +421,15 @@ function TutorProfileScreen() {
 
 // ── Role dispatcher ───────────────────────────────────────────────────────────
 
-export default function ProfileScreen() {
+/**
+ * Role-aware profile screen. Used by both `(learner)/profile.tsx` and
+ * `(tutor)/profile.tsx` — the RoleGuard in each layout already ensures only
+ * the correct role reaches this component, but the internal dispatch is
+ * kept as a safety net.
+ *
+ * @author TutorConnect Team
+ */
+export function ProfileScreen() {
   const { user, isLoaded } = useUser();
 
   if (!isLoaded) {

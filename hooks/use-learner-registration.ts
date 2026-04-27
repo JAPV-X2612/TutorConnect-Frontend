@@ -31,9 +31,6 @@ export function useLearnerRegistration() {
       if (!sessionId) { setError('generic'); return; }
 
       await setActive!({ session: sessionId });
-
-      // Navigate to profile-setup where the user picks their interests
-      // and the platform profile is created.
       router.push('/(auth)/profile-setup' as any);
     } catch (err: any) {
       if (err?.code === 'ERR_CANCELED' || err?.message?.includes('cancel')) {
