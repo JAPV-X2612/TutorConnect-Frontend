@@ -1,14 +1,28 @@
+/**
+ * @file ProximasSesiones.tsx
+ * @description Upcoming sessions list for the tutor dashboard.
+ * @author TutorConnect Team
+ */
+
 import { Ionicons } from '@expo/vector-icons';
 import { Text, TouchableOpacity, View } from 'react-native';
 import type { ProximaSesion } from '../types';
 
-interface ProximasSesionesProps {
-  sesiones: ProximaSesion[];
-  /** True when the tutor has completed at least one session (total_sesiones > 0). */
-  hasActivity: boolean;
-}
+// ─── Design tokens ────────────────────────────────────────────────────────────
 
-// ─── Date formatting ──────────────────────────────────────────────────────────
+const C = {
+  primary: '#006A75',
+  dark: '#0D2B22',
+  muted: '#6B8C82',
+  timeToday: '#006A75',
+  timeFuture: '#888780',
+  avatarBg: '#D0E8EA',
+  avatarText: '#004d57',
+  border: 'rgba(107, 140, 130, 0.2)',
+  chevron: '#B4B2A9',
+};
+
+// ─── Date helpers ─────────────────────────────────────────────────────────────
 
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -18,112 +32,156 @@ function pad(n: number): string {
 }
 
 /**
- * Formats an ISO 8601 UTC date string.
- * - Same day  → "Hoy, 15:00"
- * - Next day  → "Mañana, 18:30"
- * - Otherwise → "Dom 20 Abr · 15:00"
+ * Formats an ISO date string relative to today.
+ * Returns `{ label, isToday }` so the caller can style the time accordingly.
  */
-function formatFecha(iso: string): string {
+function formatFecha(iso: string): { label: string; isToday: boolean } {
   const date = new Date(iso);
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
-
   const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
-  if (date.toDateString() === today.toDateString()) return `Hoy, ${time}`;
-  if (date.toDateString() === tomorrow.toDateString()) return `Mañana, ${time}`;
-
-  return `${DAYS_ES[date.getDay()]} ${date.getDate()} ${MONTHS_ES[date.getMonth()]} · ${time}`;
+  if (date.toDateString() === today.toDateString()) {
+    return { label: `Hoy, ${time}`, isToday: true };
+  }
+  if (date.toDateString() === tomorrow.toDateString()) {
+    return { label: `Mañana, ${time}`, isToday: false };
+  }
+  return {
+    label: `${DAYS_ES[date.getDay()]} ${date.getDate()} ${MONTHS_ES[date.getMonth()]} · ${time}`,
+    isToday: false,
+  };
 }
 
-// ─── Avatar helpers ───────────────────────────────────────────────────────────
-
-/** Returns up to 2 uppercase initials from a full name string. */
+/** Returns up to 2 uppercase initials from a full name. */
 function getInitials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
   return parts.length >= 2
-    ? `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase()
-    : parts[0].charAt(0).toUpperCase();
+    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    : parts[0][0].toUpperCase();
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+interface ProximasSesionesProps {
+  sesiones: ProximaSesion[];
+  /** True when the tutor has completed at least one session (total_sesiones > 0). */
+  hasActivity: boolean;
+}
+
 /**
- * Vertical list of upcoming sessions (max 5, provided by the backend).
- * Dates display as "Hoy / Mañana / short date".
+ * Section with "Próximas Sesiones" header and a vertical list of session rows.
+ * Empty state is shown when no sessions are scheduled.
  * "Ver calendario" is a placeholder for the calendar screen (HU-12).
- * Session items are touchable as a placeholder for session detail (HU-13).
  */
 export function ProximasSesiones({ sesiones, hasActivity }: ProximasSesionesProps) {
   return (
-    <View className="mt-7 px-5 pb-8">
+    <View style={{ marginTop: 20, paddingBottom: 32 }}>
       {/* Section header */}
-      <View className="flex-row justify-between items-center mb-4">
-        <Text className="text-lg font-extrabold text-text-primary">Próximas Sesiones</Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+          paddingBottom: 12,
+          paddingTop: 8,
+        }}
+      >
+        <Text style={{ fontSize: 17, fontWeight: '700', color: C.dark }}>Próximas Sesiones</Text>
         <TouchableOpacity activeOpacity={0.7}>
-          <Text className="text-sm font-semibold text-primary">Ver calendario</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: C.primary }}>Ver calendario</Text>
         </TouchableOpacity>
       </View>
 
+      {/* Session rows */}
       {sesiones.length === 0 ? (
-        <View
-          className="bg-white rounded-2xl border border-border p-6 items-center"
-          style={{ elevation: 1 }}
-        >
-          <Ionicons name="calendar-outline" size={36} color="#A0B0B8" />
-          {hasActivity && (
-            <Text className="text-sm text-text-muted text-center mt-3">
-              No tienes sesiones agendadas próximamente
-            </Text>
-          )}
+        <View style={{ paddingHorizontal: 20 }}>
+          <View
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              borderWidth: 0.5,
+              borderColor: C.border,
+              padding: 24,
+              alignItems: 'center',
+            }}
+          >
+            <Ionicons name="calendar-outline" size={36} color="#A0B0B8" />
+            {hasActivity && (
+              <Text style={{ fontSize: 14, color: C.muted, textAlign: 'center', marginTop: 12 }}>
+                No tienes sesiones agendadas próximamente
+              </Text>
+            )}
+          </View>
         </View>
       ) : (
-        <>
+        <View style={{ paddingHorizontal: 20 }}>
           {sesiones.map((sesion, index) => {
             const initials = getInitials(sesion.aprendiz_nombre);
             const isLast = index === sesiones.length - 1;
-            const fecha = formatFecha(sesion.fecha);
+            const { label: fechaLabel, isToday } = formatFecha(sesion.fecha);
 
             return (
               <TouchableOpacity
                 key={sesion.id}
                 activeOpacity={0.7}
-                className={`flex-row items-center py-3.5 ${!isLast ? 'border-b border-border' : ''}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 14,
+                  paddingVertical: 14,
+                  borderBottomWidth: isLast ? 0 : 0.5,
+                  borderBottomColor: C.border,
+                }}
               >
-                {/* Avatar — teal-light bg matching reference design */}
+                {/* Avatar */}
                 <View
-                  className="items-center justify-center mr-3.5 flex-shrink-0"
                   style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 26,
-                    backgroundColor: '#E8F5F3',
+                    width: 50,
+                    height: 50,
+                    borderRadius: 25,
+                    backgroundColor: C.avatarBg,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
-                  <Text className="text-base font-bold text-primary">{initials}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: C.avatarText }}>
+                    {initials}
+                  </Text>
                 </View>
 
                 {/* Info */}
-                <View className="flex-1 min-w-0">
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <Text
-                    className="text-sm font-bold text-text-primary mb-0.5"
+                    style={{ fontSize: 15, fontWeight: '600', color: C.dark, marginBottom: 2 }}
                     numberOfLines={1}
                   >
                     {sesion.aprendiz_nombre}
                   </Text>
-                  <Text className="text-xs font-semibold text-primary mb-0.5">{fecha}</Text>
-                  <Text className="text-xs text-text-muted" numberOfLines={1}>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '600',
+                      color: isToday ? C.timeToday : C.timeFuture,
+                      marginBottom: 2,
+                    }}
+                  >
+                    {fechaLabel}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={1}>
                     {sesion.materia ?? 'Sin materia'}
                   </Text>
                 </View>
 
                 {/* Chevron */}
-                <Text style={{ fontSize: 24, color: '#A0B0B8', paddingLeft: 8 }}>›</Text>
+                <Text style={{ fontSize: 22, color: C.chevron }}>›</Text>
               </TouchableOpacity>
             );
           })}
-        </>
+        </View>
       )}
     </View>
   );

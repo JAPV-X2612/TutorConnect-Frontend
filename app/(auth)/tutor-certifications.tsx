@@ -79,9 +79,9 @@ function FileStatusBadge({
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-export default function TutorCertificacionesScreen() {
+export default function TutorCertificationsScreen() {
   const router = useRouter();
-  const { post } = useApiRequest();
+  const { get, post } = useApiRequest();
   const { tutorId } = useLocalSearchParams<{ tutorId: string }>();
 
   const [certifications, setCertifications] = useState<CertificationFile[]>([]);
@@ -159,8 +159,9 @@ export default function TutorCertificacionesScreen() {
           prev.map((f) => (f.id === file.id ? { ...f, status: 'success' as const } : f)),
         );
       } else {
-        const errorMessage =
-          (response.data as any)?.message ?? 'Error al subir el archivo.';
+        const raw = (response.data as any)?.message;
+        const errorMessage: string =
+          typeof raw === 'string' ? raw : 'Error al subir el archivo.';
         setCertifications((prev) =>
           prev.map((f) =>
             f.id === file.id ? { ...f, status: 'error' as const, errorMessage } : f,
@@ -199,7 +200,13 @@ export default function TutorCertificacionesScreen() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      router.replace('/(auth)/solicitud-enviada' as any);
+      // Re-confirm with backend that certifications were recorded before navigating.
+      const result = await get<{ hasCertificaciones?: boolean }>(API_ENDPOINTS.tutorMe);
+      if (result.data?.hasCertificaciones) {
+        router.replace('/(tutor)/dashboard' as any);
+      } else {
+        router.replace('/(auth)/solicitud-enviada' as any);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -255,9 +262,7 @@ export default function TutorCertificacionesScreen() {
             disabled={isAtLimit}
             activeOpacity={0.8}
             className={`rounded-2xl border-2 border-dashed items-center py-8 px-5 gap-2 ${
-              isAtLimit
-                ? 'border-red-300 bg-red-50'
-                : 'border-primary bg-primary/5'
+              isAtLimit ? 'border-red-300 bg-red-50' : 'border-primary bg-primary/5'
             }`}
           >
             <MaterialCommunityIcons
@@ -322,10 +327,7 @@ export default function TutorCertificacionesScreen() {
 
                   {/* Info */}
                   <View className="flex-1 min-w-0">
-                    <Text
-                      className="text-sm font-semibold text-text-primary"
-                      numberOfLines={1}
-                    >
+                    <Text className="text-sm font-semibold text-text-primary" numberOfLines={1}>
                       {file.name}
                     </Text>
                     <Text className="text-xs text-text-muted mt-0.5">{formatSize(file.size)}</Text>
@@ -367,9 +369,7 @@ export default function TutorCertificacionesScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleSkip} className="items-center mt-4">
-          <Text className="text-sm font-semibold text-primary">
-            Omitir por ahora
-          </Text>
+          <Text className="text-sm font-semibold text-primary">Omitir por ahora</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
