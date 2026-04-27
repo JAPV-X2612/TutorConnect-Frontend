@@ -1,28 +1,18 @@
-import { useAuth } from '@clerk/clerk-expo';
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 /**
- * Clerk OAuth completion handler.
+ * Clerk OAuth deep-link landing screen.
  *
- * Routing decisions live exclusively in `app/index.tsx` — this screen simply
- * redirects there once the Clerk session is established so role resolution
- * happens in a single place.
+ * This screen is the redirect target for all OAuth flows. It intentionally
+ * does NOT navigate — navigation is fully handled by the hook that initiated
+ * the OAuth flow (useTutorRegistration, useLearnerRegistration, etc.) once
+ * startOAuthFlow() resolves.
  *
- * @author TutorConnect Team
+ * Previously this screen called router.replace('/'), which caused a race
+ * condition: it navigated to index.tsx (and then to the role dashboard) before
+ * startOAuthFlow() could return, bypassing tutor-detalles.tsx entirely.
  */
 export default function OAuthNativeCallback() {
-  const { isSignedIn, isLoaded } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (isSignedIn) {
-      router.replace('/');
-    }
-  }, [isLoaded, isSignedIn, router]);
-
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <ActivityIndicator size="large" color="#006A75" />

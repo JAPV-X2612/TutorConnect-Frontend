@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useOAuth, useClerk } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { resetTutorOnboarding, setTutorOnboarding } from './use-tutor-onboarding';
 
 export type TutorAuthError = 'network' | 'generic' | 'canceled';
@@ -24,7 +25,13 @@ export function useTutorRegistration() {
     try {
       resetTutorOnboarding();
 
-      const { createdSessionId, signUp, setActive } = await startOAuthFlow();
+      const redirectUrl = Linking.createURL('oauth-native-callback');
+      console.log('[tutor-oauth] redirectUrl:', redirectUrl);
+
+      const { createdSessionId, signUp, setActive } = await startOAuthFlow({
+        redirectUrl,
+        unsafeMetadata: { role: 'TUTOR' },
+      });
       let sessionId: string | null = createdSessionId ?? null;
 
       if (!sessionId && signUp?.status === 'missing_requirements') {

@@ -32,6 +32,11 @@ export const API_ENDPOINTS = {
     subject
       ? `${API_BASE_URL}/tutors?subject=${encodeURIComponent(subject)}`
       : `${API_BASE_URL}/tutors`,
+  courseListings: (subject?: string) =>
+    subject
+      ? `${API_BASE_URL}/tutors/courses?subject=${encodeURIComponent(subject)}`
+      : `${API_BASE_URL}/tutors/courses`,
+  courseDetail: (courseId: string) => `${API_BASE_URL}/tutors/courses/${courseId}`,
   tutorRegister: `${API_BASE_URL}/tutors/register`,
   tutorMe: `${API_BASE_URL}/tutors/me`,
   tutorCourses: `${API_BASE_URL}/tutors/me/courses`,
@@ -40,4 +45,10 @@ export const API_ENDPOINTS = {
     `${API_BASE_URL}/tutors/${tutorId}/certificaciones`,
   deleteCertification: (tutorId: string, certificationId: string) =>
     `${API_BASE_URL}/tutors/${tutorId}/certificaciones/${certificationId}`,
+  // Booking endpoints
+  bookings: `${API_BASE_URL}/bookings`,
+  myBookings: `${API_BASE_URL}/bookings/me`,
+  tutorBookings: `${API_BASE_URL}/bookings/tutor`,
+  bookingStatus: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/status`,
+  cancelBooking: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/cancel`,
 };

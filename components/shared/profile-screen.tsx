@@ -1,11 +1,12 @@
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator, KeyboardAvoidingView, Modal, Platform,
   ScrollView, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useLogout } from '@/hooks/use-logout';
 import { useProfile } from '@/hooks/use-profile';
 import { useTutorProfile, UpdateTutorPayload } from '@/hooks/use-tutor-profile';
@@ -61,12 +62,14 @@ function LogoutButton({ onPress, loading }: { onPress: () => void; loading: bool
 
 // ── Learner profile ───────────────────────────────────────────────────────────
 
-function LearnerProfileScreen() {
+export function LearnerProfileScreen() {
   const { user } = useUser();
   const { logout, loading: loggingOut } = useLogout();
-  const { profile, loading, saving, error, update } = useProfile();
+  const { profile, loading, saving, error, update, refetch } = useProfile();
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [editing, setEditing] = useState(false);
+
+  useFocusEffect(useCallback(() => { refetch(); }, []));
   const [form, setForm] = useState<{ city: string; organizationName: string; academicProgram: string }>({
     city: '', organizationName: '', academicProgram: '',
   });
@@ -247,12 +250,14 @@ function LearnerProfileScreen() {
 
 // ── Tutor profile ─────────────────────────────────────────────────────────────
 
-function TutorProfileScreen() {
+export function TutorProfileScreen() {
   const { user } = useUser();
   const { logout, loading: loggingOut } = useLogout();
-  const { profile, loading, saving, error, update } = useTutorProfile();
+  const { profile, loading, saving, error, update, refetch } = useTutorProfile();
   const [editing, setEditing] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
+
+  useFocusEffect(useCallback(() => { refetch(); }, []));
   const [form, setForm] = useState<UpdateTutorPayload>({});
   const [saveError, setSaveError] = useState<string | null>(null);
 

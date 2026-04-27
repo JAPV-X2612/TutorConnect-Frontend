@@ -42,7 +42,9 @@ export default function TutorDetallesScreen() {
     setLoading(true);
     setError(null);
     try {
+      const email = clerk.user?.primaryEmailAddress?.emailAddress ?? '';
       const response = await post(API_ENDPOINTS.tutorRegister, {
+        email,
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         cedula: cedula.trim() || undefined,
@@ -57,10 +59,16 @@ export default function TutorDetallesScreen() {
           apellido: apellido.trim(),
           bio: bio.trim(),
         });
-        // Reload JWT so publicMetadata.role='tutor' is reflected before routing.
-        await clerk.user?.reload();
-        await clerk.session?.reload();
-        router.replace('/(tabs)' as any);
+        // Silently refresh Clerk metadata — errors here are non-fatal since
+        // index.tsx refetches the DB profile on focus, which is the source
+        // of truth for routing. The JWT will auto-refresh on its own cycle.
+        try {
+          await clerk.user?.reload();
+          await clerk.session?.reload();
+        } catch {
+          // ignore Clerk "invalid state" after updateUserMetadata
+        }
+        router.replace('/');
       } else if (response.status === 0) {
         setError('Sin conexión. Verifica tu internet e intenta de nuevo.');
       } else {

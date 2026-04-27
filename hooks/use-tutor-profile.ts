@@ -3,20 +3,22 @@ import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 
 export interface TutorProfile {
-  id: string;
-  nombre: string;
-  apellido: string;
+  exists: boolean;
+  id?: string;
+  nombre?: string;
+  apellido?: string;
   cedula?: string;
   descripcion?: string;
   bio?: string;
   subjects?: string[];
   precioHora?: number;
   experienceYears?: number;
-  estado: string;
-  disponible: boolean;
+  estado?: string;
+  disponible?: boolean;
   rating?: number;
+  hasCertificaciones?: boolean;
   user?: {
-    email: string;
+    email?: string;
     city?: string;
     country?: string;
   };
