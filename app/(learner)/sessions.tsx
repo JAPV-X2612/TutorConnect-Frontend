@@ -18,7 +18,7 @@ interface BookingItem {
   startTime: string;
   endTime?: string;
   course?: { id: string; subject: string; duration: number; modalidad: string };
-  tutor?: { id: string; nombre: string; apellido: string };
+  tutor?: { id: string; clerkId: string; nombre: string; apellido: string };
 }
 
 const TABS: { key: BookingStatus; label: string }[] = [
@@ -66,9 +66,11 @@ function EmptyState({ tab }: { tab: BookingStatus }) {
 function SessionCard({
   item,
   onCancel,
+  onChat,
 }: {
   item: BookingItem;
   onCancel?: () => void;
+  onChat?: () => void;
 }) {
   const st = STATUS_CONFIG[item.status];
   const tutorName = item.tutor ? `${item.tutor.nombre} ${item.tutor.apellido}` : 'Tutor';
@@ -117,14 +119,25 @@ function SessionCard({
         )}
       </View>
 
-      {/* Cancel action for pending/confirmed */}
+      {/* Actions */}
       {(item.status === 'pending' || item.status === 'confirmed') && (
-        <TouchableOpacity
-          onPress={onCancel}
-          activeOpacity={0.8}
-          className="mt-3 py-2.5 rounded-xl border border-border items-center">
-          <Text className="text-sm font-semibold text-text-muted">Cancelar reserva</Text>
-        </TouchableOpacity>
+        <View className="mt-3 flex-row gap-2">
+          {item.status === 'confirmed' && onChat && (
+            <TouchableOpacity
+              onPress={onChat}
+              activeOpacity={0.8}
+              className="flex-1 py-2.5 rounded-xl bg-primary/10 flex-row items-center justify-center gap-1.5">
+              <Ionicons name="chatbubble-outline" size={15} color="#006A75" />
+              <Text className="text-sm font-semibold text-primary">Chatear</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={onCancel}
+            activeOpacity={0.8}
+            className="flex-1 py-2.5 rounded-xl border border-border items-center">
+            <Text className="text-sm font-semibold text-text-muted">Cancelar</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -175,6 +188,16 @@ export default function LearnerSessionsScreen() {
       setBookings((prev) =>
         prev.map((b) => (b.id === id ? { ...b, status: res.data!.status } : b)),
       );
+    }
+  };
+
+  const handleChat = async (tutorClerkId: string, courseId?: string) => {
+    const res = await api.post(API_ENDPOINTS.messagingChannels, {
+      otherClerkId: tutorClerkId,
+      ...(courseId && { courseId }),
+    });
+    if (!res.error) {
+      router.push('/(learner)/mensajes' as any);
     }
   };
 
@@ -239,6 +262,7 @@ export default function LearnerSessionsScreen() {
             <SessionCard
               item={item}
               onCancel={cancelling === item.id ? undefined : () => handleCancel(item.id)}
+              onChat={item.tutor?.clerkId ? () => handleChat(item.tutor!.clerkId, item.course?.id) : undefined}
             />
           )}
           ListEmptyComponent={<EmptyState tab={activeTab} />}

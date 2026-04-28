@@ -29,6 +29,7 @@ interface CourseDetail {
   schedule: { day: string; startTime: string; endTime: string }[];
   tutor: {
     id: string;
+    clerkId: string;
     nombre: string;
     apellido: string;
     bio?: string;
@@ -69,6 +70,18 @@ export default function CourseDetailScreen() {
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const handleConsultar = async () => {
+    if (!course?.tutor?.clerkId) return;
+    setChatLoading(true);
+    await api.post(API_ENDPOINTS.messagingChannels, {
+      otherClerkId: course.tutor.clerkId,
+      courseId,
+    });
+    setChatLoading(false);
+    router.push('/(learner)/mensajes' as any);
+  };
 
   useEffect(() => {
     if (!courseId) return;
@@ -253,7 +266,7 @@ export default function CourseDetailScreen() {
       </ScrollView>
 
       {/* CTA fijo */}
-      <View className="absolute bottom-0 left-0 right-0 px-6 pb-6 pt-4 bg-background border-t border-border">
+      <View className="absolute bottom-0 left-0 right-0 px-6 pb-6 pt-4 bg-background border-t border-border gap-3">
         <TouchableOpacity
           activeOpacity={0.85}
           className="bg-primary rounded-full py-4 items-center"
@@ -262,6 +275,20 @@ export default function CourseDetailScreen() {
           <Text className="text-white font-semibold text-base">
             Reservar sesión — ${course.price.toLocaleString('es-CO')} COP
           </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          disabled={chatLoading || !course.tutor?.clerkId}
+          onPress={handleConsultar}
+          className="flex-row items-center justify-center gap-2 border border-primary rounded-full py-3"
+        >
+          {chatLoading
+            ? <ActivityIndicator color="#006A75" size="small" />
+            : <>
+                <Ionicons name="chatbubble-outline" size={16} color="#006A75" />
+                <Text className="text-primary font-semibold text-sm">Consultar al tutor</Text>
+              </>
+          }
         </TouchableOpacity>
       </View>
     </SafeAreaView>

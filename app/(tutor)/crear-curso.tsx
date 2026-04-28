@@ -78,8 +78,9 @@ export default function CrearCursoScreen() {
     subject: submitted && subject.length === 0,
     price: submitted && (!price || Number(price) <= 0),
     modalidad: submitted && !modalidad,
+    schedule: submitted && schedule.length === 0,
   };
-  const canSubmit = subject.length > 0 && !!price && Number(price) > 0 && !!modalidad;
+  const canSubmit = subject.length > 0 && !!price && Number(price) > 0 && !!modalidad && schedule.length > 0;
 
   const toggleDay = (day: Day) => {
     setSchedule((prev) => {
@@ -238,7 +239,7 @@ export default function CrearCursoScreen() {
 
           {/* Schedule */}
           <Text className="text-xs font-semibold text-text-muted mb-2 uppercase tracking-wide">
-            Días y horarios disponibles <Text className="font-normal normal-case">(opcional)</Text>
+            Días y horarios disponibles{errors.schedule && <Text className="text-red-400 font-normal normal-case"> — selecciona al menos 1 día</Text>}
           </Text>
           <View className="flex-row gap-1.5 mb-3 flex-wrap">
             {DAYS.map(({ key, label }) => {

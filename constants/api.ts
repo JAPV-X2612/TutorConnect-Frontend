@@ -51,4 +51,8 @@ export const API_ENDPOINTS = {
   tutorBookings: `${API_BASE_URL}/bookings/tutor`,
   bookingStatus: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/status`,
   cancelBooking: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/cancel`,
+  // Messaging endpoints
+  messagingChannels: `${API_BASE_URL}/messaging/channels`,
+  messagingMessages: (channelId: number) =>
+    `${API_BASE_URL}/messaging/channels/${channelId}/messages`,
 };
