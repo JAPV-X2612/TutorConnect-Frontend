@@ -133,7 +133,7 @@ export default function SesionesScreen() {
   const loadBookings = useCallback(async () => {
     setLoading(true);
     const res = await api.get<BookingItem[]>(API_ENDPOINTS.tutorBookings);
-    if (res.data) setBookings(res.data);
+    if (Array.isArray(res.data)) setBookings(res.data);
     setLoading(false);
   }, []);
 

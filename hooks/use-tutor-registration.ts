@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useOAuth, useClerk } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -18,15 +18,31 @@ export function useTutorRegistration() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<TutorAuthError | null>(null);
+  const inFlight = useRef(false);
+
+  const navigateNext = () => {
+    setTutorOnboarding({
+      nombre: clerk.user?.firstName ?? '',
+      apellido: clerk.user?.lastName ?? '',
+    });
+    router.push('/(auth)/tutor-detalles' as any);
+  };
 
   const handleRegister = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setError(null);
     setLoading(true);
     try {
+      // Already signed in — skip OAuth and go to next step.
+      if (clerk.session) {
+        navigateNext();
+        return;
+      }
+
       resetTutorOnboarding();
 
       const redirectUrl = Linking.createURL('oauth-native-callback');
-      console.log('[tutor-oauth] redirectUrl:', redirectUrl);
 
       const { createdSessionId, signUp, setActive } = await startOAuthFlow({
         redirectUrl,
@@ -42,14 +58,17 @@ export function useTutorRegistration() {
       if (!sessionId) { setError('generic'); return; }
 
       await setActive!({ session: sessionId });
-
-      setTutorOnboarding({
-        nombre: clerk.user?.firstName ?? '',
-        apellido: clerk.user?.lastName ?? '',
-      });
-
-      router.push('/(auth)/tutor-detalles' as any);
+      // Wait for Clerk to fully propagate the session before navigating.
+      // Without this, the next screen's useAuth() throws "Invalid state"
+      // because the session context hasn't settled yet.
+      await new Promise((r) => setTimeout(r, 400));
+      navigateNext();
     } catch (err: any) {
+      const clerkCode = err?.errors?.[0]?.code;
+      if (clerkCode === 'session_exists') {
+        navigateNext();
+        return;
+      }
       if (err?.code === 'ERR_CANCELED' || err?.message?.includes('cancel')) {
         setError('canceled');
         return;
@@ -57,6 +76,7 @@ export function useTutorRegistration() {
       setError(!err?.errors ? 'network' : 'generic');
     } finally {
       setLoading(false);
+      inFlight.current = false;
     }
   };
 
