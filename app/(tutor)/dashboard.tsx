@@ -183,6 +183,7 @@ export default function TutorDashboardScreen() {
                         modalidad: c.modalidad,
                         level: c.academicLevel ?? '',
                         description: c.description ?? '',
+                        schedule: JSON.stringify(c.schedule ?? []),
                       },
                     } as any)
                   }
