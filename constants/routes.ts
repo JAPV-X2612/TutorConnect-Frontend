@@ -18,7 +18,7 @@ export const ROUTES = {
   AUTH_REGISTER: '/(auth)/register',
   AUTH_TUTOR_REGISTER: '/(auth)/tutor-register',
   AUTH_TUTOR_CERTIFICATIONS: '/(auth)/tutor-certifications',
-  AUTH_SOLICITUD_ENVIADA: '/(auth)/solicitud-enviada',
+  AUTH_REQUEST_SUBMITTED: '/(auth)/request-submitted',
 
   // Learner area
   LEARNER_DASHBOARD: '/(learner)/dashboard',

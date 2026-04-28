@@ -195,14 +195,14 @@ export default function TutorCertificationsScreen() {
       if (result.data?.hasCertificaciones) {
         router.replace('/(tutor)/dashboard' as any);
       } else {
-        router.replace('/(auth)/solicitud-enviada' as any);
+        router.replace('/(auth)/request-submitted' as any);
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleSkip = () => router.replace('/(auth)/solicitud-enviada' as any);
+  const handleSkip = () => router.replace('/(auth)/request-submitted' as any);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
