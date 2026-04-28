@@ -1,116 +1,89 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useOAuth, useClerk } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
-import { useApiRequest } from '../services/api';
-import { API_ENDPOINTS } from '../constants/api';
+import * as Linking from 'expo-linking';
+import { resetTutorOnboarding, setTutorOnboarding } from './use-tutor-onboarding';
 
-export type TutorRegistrationBannerError = 'conflict' | 'network' | 'generic' | 'unauthorized';
+export type TutorAuthError = 'network' | 'generic' | 'canceled';
 
-export interface TutorFormState {
-  nombre: string;
-  apellido: string;
-  descripcion: string;
-}
+const ERROR_MESSAGES: Record<TutorAuthError, string> = {
+  network: 'Sin conexión. Verifica tu internet e intenta de nuevo.',
+  generic: 'Ocurrió un error con Google. Intenta de nuevo.',
+  canceled: '',
+};
 
-export interface TutorFormErrors {
-  nombre?: string;
-  apellido?: string;
-}
-
-/**
- * Manages the tutor registration flow: form state, validation,
- * Google OAuth, backend user creation, and tutor profile registration.
- *
- * @author TutorConnect Team
- */
 export function useTutorRegistration() {
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
   const clerk = useClerk();
-  const api = useApiRequest();
   const router = useRouter();
-
-  const [form, setForm] = useState<TutorFormState>({
-    nombre: '',
-    apellido: '',
-    descripcion: '',
-  });
-  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [bannerError, setBannerError] = useState<TutorRegistrationBannerError | null>(null);
+  const [error, setError] = useState<TutorAuthError | null>(null);
+  const inFlight = useRef(false);
 
-  const errors: TutorFormErrors = {
-    nombre: submitted && form.nombre.trim().length < 2 ? 'Requerido, mín 2 caracteres' : undefined,
-    apellido: submitted && form.apellido.trim().length < 2 ? 'Requerido, mín 2 caracteres' : undefined,
+  const navigateNext = () => {
+    setTutorOnboarding({
+      nombre: clerk.user?.firstName ?? '',
+      apellido: clerk.user?.lastName ?? '',
+    });
+    router.push('/(auth)/tutor-detalles' as any);
   };
 
-  const isFormValid = form.nombre.trim().length >= 2 && form.apellido.trim().length >= 2;
-
   const handleRegister = async () => {
-    setSubmitted(true);
-    setBannerError(null);
-    if (!isFormValid) return;
-
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setError(null);
     setLoading(true);
     try {
-      await clerk.signOut();
-
-      const { createdSessionId, setActive } = await startOAuthFlow();
-
-      if (!createdSessionId) {
-        setBannerError('unauthorized');
+      // Already signed in — skip OAuth and go to next step.
+      if (clerk.session) {
+        navigateNext();
         return;
       }
 
-      await setActive!({ session: createdSessionId });
+      resetTutorOnboarding();
 
-      const clerkId = clerk.user?.id;
-      const email = clerk.user?.primaryEmailAddress?.emailAddress;
-      const firstName = clerk.user?.firstName ?? form.nombre.trim();
-      const lastName = clerk.user?.lastName ?? form.apellido.trim();
+      const redirectUrl = Linking.createURL('oauth-native-callback');
 
-      // Create user profile — 409 (already exists) is acceptable
-      await api.post(API_ENDPOINTS.usersCreate, {
-        clerkId,
-        email,
-        firstName,
-        lastName,
-        role: 'TUTOR',
-        country: 'Colombia',
+      const { createdSessionId, signUp, setActive } = await startOAuthFlow({
+        redirectUrl,
+        unsafeMetadata: { role: 'TUTOR' },
       });
+      let sessionId: string | null = createdSessionId ?? null;
 
-      // Register tutor profile with JWT from the active Clerk session
-      const response = await api.post(API_ENDPOINTS.tutorRegister, {
-        nombre: form.nombre.trim(),
-        apellido: form.apellido.trim(),
-        descripcion: form.descripcion.trim() || undefined,
-      });
-
-      if (response.status === 201 || response.status === 200) {
-        router.push('/(auth)/tutor-certificaciones' as any);
-      } else if (response.status === 409) {
-        setBannerError('conflict');
-      } else if (response.status === 0) {
-        setBannerError('network');
-      } else {
-        setBannerError('generic');
+      if (!sessionId && signUp?.status === 'missing_requirements') {
+        const completed = await signUp.update({ unsafeMetadata: { role: 'TUTOR' } });
+        sessionId = completed.createdSessionId ?? null;
       }
-    } catch (err: unknown) {
-      const error = err as { code?: string; message?: string; errors?: unknown[] };
-      if (error?.code === 'ERR_CANCELED' || error?.message?.includes('cancel')) return;
-      setBannerError(error?.errors ? 'generic' : 'network');
+
+      if (!sessionId) { setError('generic'); return; }
+
+      await setActive!({ session: sessionId });
+      // Wait for Clerk to fully propagate the session before navigating.
+      // Without this, the next screen's useAuth() throws "Invalid state"
+      // because the session context hasn't settled yet.
+      await new Promise((r) => setTimeout(r, 400));
+      navigateNext();
+    } catch (err: any) {
+      const clerkCode = err?.errors?.[0]?.code;
+      if (clerkCode === 'session_exists') {
+        navigateNext();
+        return;
+      }
+      if (err?.code === 'ERR_CANCELED' || err?.message?.includes('cancel')) {
+        setError('canceled');
+        return;
+      }
+      setError(!err?.errors ? 'network' : 'generic');
     } finally {
       setLoading(false);
+      inFlight.current = false;
     }
   };
 
   return {
-    form,
-    setForm,
-    submitted,
     loading,
-    bannerError,
-    errors,
-    isFormValid,
+    error,
+    errorMessage: error && error !== 'canceled' ? ERROR_MESSAGES[error] : null,
     handleRegister,
   };
 }

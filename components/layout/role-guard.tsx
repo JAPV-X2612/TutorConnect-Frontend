@@ -48,7 +48,7 @@ export function RoleGuard({
   }
 
   if (profile.role !== expected) {
-    return <Redirect href={homeRouteForRole(profile.role)} />;
+    return <Redirect href={homeRouteForRole(profile.role) as any} />;
   }
 
   return <>{children}</>;

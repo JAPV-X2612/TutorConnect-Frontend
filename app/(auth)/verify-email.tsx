@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,25 +7,25 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { useSignUp } from '@clerk/clerk-expo';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+} from "react-native";
+import { useSignUp } from "@clerk/clerk-expo";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 function maskEmail(email: string): string {
-  const atIndex = email.indexOf('@');
+  const atIndex = email.indexOf("@");
   if (atIndex < 0) return email;
   const local = email.slice(0, atIndex);
   const domain = email.slice(atIndex);
   return `${local.slice(0, 2)}***${domain}`;
 }
 
-type BannerError = 'wrong_code' | 'expired' | 'too_many' | 'resend_failed';
+type BannerError = "wrong_code" | "expired" | "too_many" | "resend_failed";
 
 const BANNER_MESSAGES: Record<BannerError, string> = {
-  wrong_code: 'Código incorrecto. Verifica tu email e intenta de nuevo.',
-  expired: 'El código expiró. Solicita uno nuevo.',
-  too_many: 'Demasiados intentos. Solicita un nuevo código.',
-  resend_failed: 'No se pudo reenviar el código. Intenta de nuevo.',
+  wrong_code: "Código incorrecto. Verifica tu email e intenta de nuevo.",
+  expired: "El código expiró. Solicita uno nuevo.",
+  too_many: "Demasiados intentos. Solicita un nuevo código.",
+  resend_failed: "No se pudo reenviar el código. Intenta de nuevo.",
 };
 
 export default function VerifyEmailScreen() {
@@ -33,7 +33,7 @@ export default function VerifyEmailScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
 
-  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [bannerError, setBannerError] = useState<BannerError | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [resendCooldown, setResendCooldown] = useState(30);
@@ -48,11 +48,11 @@ export default function VerifyEmailScreen() {
   }, [resendCooldown]);
 
   const isBlocked = failedAttempts >= 3;
-  const fullCode = code.join('');
+  const fullCode = code.join("");
 
   const handleCodeChange = (value: string, index: number) => {
     if (isBlocked) return;
-    const digit = value.replace(/\D/g, '').slice(-1);
+    const digit = value.replace(/\D/g, "").slice(-1);
     const updated = [...code];
     updated[index] = digit;
     setCode(updated);
@@ -61,8 +61,11 @@ export default function VerifyEmailScreen() {
     }
   };
 
-  const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
+  const handleKeyPress = (
+    e: { nativeEvent: { key: string } },
+    index: number,
+  ) => {
+    if (e.nativeEvent.key === "Backspace" && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
@@ -74,26 +77,26 @@ export default function VerifyEmailScreen() {
     setBannerError(null);
     try {
       await signUp.attemptEmailAddressVerification({ code: fullCode });
-      if (signUp.status === 'complete') {
+      if (signUp.status === "complete") {
         await setActive({ session: signUp.createdSessionId });
         router.replace('/');
       }
     } catch (err: any) {
-      const clerkCode: string = err?.errors?.[0]?.code ?? '';
+      const clerkCode: string = err?.errors?.[0]?.code ?? "";
       const newAttempts = failedAttempts + 1;
       setFailedAttempts(newAttempts);
-      setCode(['', '', '', '', '', '']);
+      setCode(["", "", "", "", "", ""]);
       setTimeout(() => inputRefs.current[0]?.focus(), 50);
 
       if (newAttempts >= 3) {
-        setBannerError('too_many');
+        setBannerError("too_many");
       } else if (
-        clerkCode === 'verification_expired' ||
-        clerkCode === 'form_code_incorrect_expiration'
+        clerkCode === "verification_expired" ||
+        clerkCode === "form_code_incorrect_expiration"
       ) {
-        setBannerError('expired');
+        setBannerError("expired");
       } else {
-        setBannerError('wrong_code');
+        setBannerError("wrong_code");
       }
     } finally {
       setLoading(false);
@@ -103,31 +106,33 @@ export default function VerifyEmailScreen() {
   const handleResend = async () => {
     if (resendCooldown > 0 || !isLoaded) return;
     try {
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setResendCooldown(30);
       setFailedAttempts(0);
       setBannerError(null);
-      setCode(['', '', '', '', '', '']);
+      setCode(["", "", "", "", "", ""]);
       setTimeout(() => inputRefs.current[0]?.focus(), 50);
     } catch {
-      setBannerError('resend_failed');
+      setBannerError("resend_failed");
     }
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.inner}>
         <Text style={styles.title}>Verifica tu email</Text>
         <Text style={styles.subtitle}>
-          Enviamos un código a {email ? maskEmail(email) : 'tu correo'}
+          Enviamos un código a {email ? maskEmail(email) : "tu correo"}
         </Text>
 
         {bannerError && (
           <View style={styles.banner}>
-            <Text style={styles.bannerText}>{BANNER_MESSAGES[bannerError]}</Text>
+            <Text style={styles.bannerText}>
+              {BANNER_MESSAGES[bannerError]}
+            </Text>
           </View>
         )}
 
@@ -138,7 +143,10 @@ export default function VerifyEmailScreen() {
               ref={(ref) => {
                 inputRefs.current[i] = ref;
               }}
-              style={[styles.codeInput, isBlocked ? styles.codeInputDisabled : null]}
+              style={[
+                styles.codeInput,
+                isBlocked ? styles.codeInputDisabled : null,
+              ]}
               value={digit}
               onChangeText={(val) => handleCodeChange(val, i)}
               onKeyPress={(e) => handleKeyPress(e, i)}
@@ -159,7 +167,7 @@ export default function VerifyEmailScreen() {
           disabled={fullCode.length < 6 || isBlocked || loading}
         >
           <Text style={styles.buttonText}>
-            {loading ? 'Verificando...' : 'Verificar'}
+            {loading ? "Verificando..." : "Verificar"}
           </Text>
         </TouchableOpacity>
 
@@ -168,8 +176,15 @@ export default function VerifyEmailScreen() {
           onPress={handleResend}
           disabled={resendCooldown > 0}
         >
-          <Text style={[styles.resendText, resendCooldown > 0 ? styles.resendDisabled : null]}>
-            {resendCooldown > 0 ? `Reenviar (${resendCooldown}s)` : 'Reenviar código'}
+          <Text
+            style={[
+              styles.resendText,
+              resendCooldown > 0 ? styles.resendDisabled : null,
+            ]}
+          >
+            {resendCooldown > 0
+              ? `Reenviar (${resendCooldown}s)`
+              : "Reenviar código"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -178,43 +193,43 @@ export default function VerifyEmailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  inner: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 8, color: '#111' },
-  subtitle: { fontSize: 15, color: '#6b7280', marginBottom: 24 },
+  container: { flex: 1, backgroundColor: "#fff" },
+  inner: { flex: 1, padding: 24, justifyContent: "center" },
+  title: { fontSize: 28, fontWeight: "700", marginBottom: 8, color: "#111" },
+  subtitle: { fontSize: 15, color: "#6b7280", marginBottom: 24 },
   banner: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: "#fee2e2",
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#fca5a5',
+    borderColor: "#fca5a5",
   },
-  bannerText: { color: '#b91c1c', fontSize: 14 },
-  codeRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+  bannerText: { color: "#b91c1c", fontSize: 14 },
+  codeRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   codeInput: {
     flex: 1,
     aspectRatio: 1,
     borderWidth: 1.5,
-    borderColor: '#d1d5db',
+    borderColor: "#d1d5db",
     borderRadius: 8,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 20,
-    fontWeight: '600',
-    color: '#111',
-    backgroundColor: '#f9fafb',
+    fontWeight: "600",
+    color: "#111",
+    backgroundColor: "#f9fafb",
   },
-  codeInputDisabled: { opacity: 0.4, backgroundColor: '#e5e7eb' },
+  codeInputDisabled: { opacity: 0.4, backgroundColor: "#e5e7eb" },
   button: {
-    backgroundColor: '#0a7ea4',
+    backgroundColor: "#0a7ea4",
     borderRadius: 8,
     padding: 14,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
   buttonDisabled: { opacity: 0.4 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  resendButton: { alignItems: 'center' },
-  resendText: { color: '#0a7ea4', fontSize: 15, fontWeight: '500' },
-  resendDisabled: { color: '#9ca3af' },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  resendButton: { alignItems: "center" },
+  resendText: { color: "#0a7ea4", fontSize: 15, fontWeight: "500" },
+  resendDisabled: { color: "#9ca3af" },
 });

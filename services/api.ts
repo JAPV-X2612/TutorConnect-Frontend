@@ -86,7 +86,7 @@ export const useApiRequest = () => {
         return getMockResponse<T>(endpoint, method);
       }
 
-      const token = await getToken();
+      const token = await getToken().catch(() => null);
 
       const headers: HeadersInit = {
         'ngrok-skip-browser-warning': 'true',
@@ -111,6 +111,7 @@ export const useApiRequest = () => {
         config.body = body;
       }
 
+      console.log(`[API] ${method} ${endpoint}`);
       const response = await fetch(endpoint, config);
 
       // Handle response based on content type
