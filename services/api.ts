@@ -6,6 +6,16 @@ interface ApiResponse<T = any> {
   status: number;
 }
 
+const extractErrorMessage = (data: unknown): string => {
+  if (typeof data === 'string') return data;
+  if (data !== null && typeof data === 'object') {
+    const d = data as Record<string, unknown>;
+    if (typeof d['error'] === 'string' && d['error']) return d['error'];
+    if (typeof d['message'] === 'string' && d['message']) return d['message'];
+  }
+  return 'Request failed';
+};
+
 const isFrontendOnlyMode =
   process.env.EXPO_PUBLIC_FRONTEND_ONLY === 'true';
 
@@ -16,6 +26,32 @@ const getMockResponse = async <T = any>(
   endpoint: string,
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT'
 ): Promise<ApiResponse<T>> => {
+  if (method === 'GET' && endpoint.includes('/dashboard/learner')) {
+    await sleep(400);
+    return {
+      status: 200,
+      data: {
+        weeklyProgress: { completed: 2, total: 4 },
+        upcomingSessions: [
+          {
+            id: 'mock-session-1',
+            subject: 'Álgebra Lineal',
+            tutorName: 'Dr. Martínez',
+            scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
+            status: 'confirmed',
+          },
+          {
+            id: 'mock-session-2',
+            subject: 'Historia Universal',
+            tutorName: 'Lic. Elena',
+            scheduledAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+            status: 'pending',
+          },
+        ],
+      } as T,
+    };
+  }
+
   if (method === 'POST' && endpoint.includes('/tutors/register')) {
     await sleep(500);
     return {
@@ -50,23 +86,17 @@ export const useApiRequest = () => {
         return getMockResponse<T>(endpoint, method);
       }
 
-      const token = await getToken();
-
-      if (!token) {
-        return {
-          error: 'No authentication token available',
-          status: 401,
-        };
-      }
+      const token = await getToken().catch(() => null);
 
       const headers: HeadersInit = {
-        'Authorization': `Bearer ${token}`,
+        'ngrok-skip-browser-warning': 'true',
       };
 
-      // Only add Content-Type if not FormData (FormData sets it automatically)
-      if (!isFormData && !body) {
-        headers['Content-Type'] = 'application/json';
-      } else if (!isFormData && body) {
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      if (!isFormData) {
         headers['Content-Type'] = 'application/json';
       }
 
@@ -81,6 +111,7 @@ export const useApiRequest = () => {
         config.body = body;
       }
 
+      console.log(`[API] ${method} ${endpoint}`);
       const response = await fetch(endpoint, config);
 
       // Handle response based on content type
@@ -97,7 +128,7 @@ export const useApiRequest = () => {
 
       if (!response.ok) {
         return {
-          error: data?.error || data?.message || 'Request failed',
+          error: extractErrorMessage(data),
           status: response.status,
           data: data,
         };

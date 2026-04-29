@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk find *)",
+      "Bash(rtk ls *)",
+      "Bash(rtk grep *)",
+      "Bash(cp \"/c/Users/User/Downloads/Group.png\" \"/c/Users/User/Documents/TutorConnect-Frontend/assets/images/icon.png\")",
+      "Bash(cp \"/c/Users/User/Downloads/Group.png\" \"/c/Users/User/Documents/TutorConnect-Frontend/assets/images/splash-icon.png\")",
+      "Bash(cp \"/c/Users/User/Downloads/Group.png\" \"/c/Users/User/Documents/TutorConnect-Frontend/assets/images/android-icon-foreground.png\")",
+      "Bash(cp \"/c/Users/User/Downloads/Group.png\" \"/c/Users/User/Documents/TutorConnect-Frontend/assets/images/android-icon-monochrome.png\")",
+      "Bash(cp \"/c/Users/User/Downloads/Group.png\" \"/c/Users/User/Documents/TutorConnect-Frontend/assets/images/favicon.png\")"
+    ]
+  }
+}
