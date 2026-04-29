@@ -24,4 +24,4 @@ else
   echo "Emulator ready."
 fi
 
-npx expo start --android
+npx expo start --android --go
