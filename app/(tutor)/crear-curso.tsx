@@ -10,12 +10,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SelectInput } from '@/components/ui/select-input';
 import { InterestPicker } from '@/components/ui/interest-picker';
 import { ACADEMIC_LEVELS, MODALIDADES, INTERESTS } from '@/constants/registration-options';
-import { useTutorCourses } from '@/hooks/use-tutor-courses';
+import { useTutorCourses, type ScheduleSlot } from '@/hooks/use-tutor-courses';
 
 type Duration = 30 | 60 | 90;
-type Day = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
-
-interface ScheduleSlot { day: Day; startTime: string; endTime: string; }
+type Day = ScheduleSlot['day'];
 interface CertFile { id: string; name: string; uri: string; mimeType: string; }
 
 const DAYS: { key: Day; label: string }[] = [

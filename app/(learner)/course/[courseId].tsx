@@ -75,12 +75,19 @@ export default function CourseDetailScreen() {
   const handleConsultar = async () => {
     if (!course?.tutor?.clerkId) return;
     setChatLoading(true);
-    await api.post(API_ENDPOINTS.messagingChannels, {
+    const res = await api.post<{ id: number }>(API_ENDPOINTS.messagingChannels, {
       otherClerkId: course.tutor.clerkId,
       courseId,
     });
     setChatLoading(false);
-    router.push('/(learner)/mensajes' as any);
+    if (res.data?.id) {
+      router.push({
+        pathname: '/(learner)/mensajes',
+        params: { channelId: String(res.data.id) },
+      } as any);
+    } else {
+      router.push('/(learner)/mensajes' as any);
+    }
   };
 
   useEffect(() => {
