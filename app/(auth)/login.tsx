@@ -2,12 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth, useOAuth } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-WebBrowser.maybeCompleteAuthSession();
 
 type BannerError = 'network' | 'generic';
 
@@ -34,7 +31,7 @@ export default function LoginScreen() {
     setBannerError(null);
     setLoading(true);
     try {
-      const redirectUrl = Linking.createURL('/');
+      const redirectUrl = Linking.createURL('/oauth-native-callback');
       const { createdSessionId, setActive } = await startOAuthFlow({ redirectUrl });
 
       if (createdSessionId) {

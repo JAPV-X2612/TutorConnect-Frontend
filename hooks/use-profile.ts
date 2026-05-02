@@ -69,7 +69,7 @@ export function useProfile() {
     api.get<UserProfile>(API_ENDPOINTS.usersMe).then((result) => {
       if (cancelled) return;
       if (result.error || !result.data) {
-        setError('No se pudo cargar el perfil.');
+        setError(`Error ${result.status}: ${result.error ?? 'sin datos'} | URL: ${API_ENDPOINTS.usersMe}`);
         setProfile(null);
       } else {
         setProfile(result.data);
