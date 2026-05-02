@@ -41,6 +41,9 @@ export const API_ENDPOINTS = {
   tutorMe: `${API_BASE_URL}/tutors/me`,
   tutorCourses: `${API_BASE_URL}/tutors/me/courses`,
   tutorCourse: (courseId: string) => `${API_BASE_URL}/tutors/me/courses/${courseId}`,
+  certificationUploadUrl: (mimeType: string, fileName: string) =>
+    `${API_BASE_URL}/tutors/me/certifications/upload-url?mimeType=${encodeURIComponent(mimeType)}&fileName=${encodeURIComponent(fileName)}`,
+  certificationConfirm: `${API_BASE_URL}/tutors/me/certifications/confirm`,
   uploadCertification: (tutorId: string) =>
     `${API_BASE_URL}/tutors/${tutorId}/certificaciones`,
   deleteCertification: (tutorId: string, certificationId: string) =>
