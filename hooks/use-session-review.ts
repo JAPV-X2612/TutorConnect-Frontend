@@ -63,7 +63,15 @@ export function useSessionReview(
       setError(res.error);
       setExistingReview(null);
     } else {
-      setExistingReview(res.data ?? null);
+      // The backend responds 200 with an empty body when no review exists,
+      // which the shared api wrapper deserialises as a Blob. Validate the
+      // shape before treating the payload as a SessionReview.
+      const data = res.data as unknown;
+      const isReview =
+        data !== null &&
+        typeof data === 'object' &&
+        typeof (data as { rating?: unknown }).rating === 'number';
+      setExistingReview(isReview ? (data as SessionReview) : null);
     }
     setLoading(false);
   }, [bookingId]);
