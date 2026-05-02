@@ -1,5 +1,4 @@
 import { API_ENDPOINTS } from '@/constants/api';
-import { getTutorOnboarding } from '@/hooks/use-tutor-onboarding';
 import { useApiRequest } from '@/services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -81,8 +80,8 @@ function FileStatusBadge({
 
 export default function TutorCertificationsScreen() {
   const router = useRouter();
-  const { post } = useApiRequest();
-  const { tutorId } = useLocalSearchParams<{ tutorId: string }>();
+  const { get } = useApiRequest();
+  useLocalSearchParams<{ tutorId: string }>();
 
   const [certifications, setCertifications] = useState<CertificationFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -141,32 +140,25 @@ export default function TutorCertificationsScreen() {
       prev.map((f) => (f.id === file.id ? { ...f, status: 'uploading' as const } : f)),
     );
     try {
-      const formData = new FormData();
-      formData.append('file', {
-        uri: file.uri,
-        name: file.name,
-        type: file.mimeType,
-      } as any);
+      // 1. Get presigned POST URL from backend
+      const { data: presigned } = await get(
+        API_ENDPOINTS.certificationUploadUrl(file.mimeType, file.name),
+      );
+      const { url, fields } = presigned as { url: string; fields: Record<string, string> };
 
-      const { tutorId } = getTutorOnboarding();
-      const uploadUrl = tutorId
-        ? API_ENDPOINTS.uploadCertification(tutorId)
-        : API_ENDPOINTS.uploadCertification('me');
-      const response = await post(uploadUrl, formData, true);
+      // 2. Upload directly to S3
+      const s3Form = new FormData();
+      Object.entries(fields).forEach(([k, v]) => s3Form.append(k, v));
+      s3Form.append('file', { uri: file.uri, name: file.name, type: file.mimeType } as any);
 
-      if (response.status === 201 || response.status === 200) {
+      const s3Response = await fetch(url, { method: 'POST', body: s3Form });
+
+      if (s3Response.ok || s3Response.status === 204) {
         setCertifications((prev) =>
           prev.map((f) => (f.id === file.id ? { ...f, status: 'success' as const } : f)),
         );
       } else {
-        const raw = (response.data as any)?.message;
-        const errorMessage: string =
-          typeof raw === 'string' ? raw : 'Error al subir el archivo.';
-        setCertifications((prev) =>
-          prev.map((f) =>
-            f.id === file.id ? { ...f, status: 'error' as const, errorMessage } : f,
-          ),
-        );
+        throw new Error(`S3 upload failed: ${s3Response.status}`);
       }
     } catch {
       setCertifications((prev) =>
