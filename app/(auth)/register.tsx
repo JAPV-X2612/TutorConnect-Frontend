@@ -3,6 +3,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useLearnerRegistration } from '../../hooks/use-learner-registration';
+import { COURSE_CATEGORIES } from '@/constants/registration-options';
+import { CategoryIcon } from '@/constants/category-icons';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -27,21 +29,12 @@ export default function RegisterScreen() {
 
         {/* Categories preview */}
         <View className="flex-row flex-wrap justify-center gap-2 px-2">
-          {[
-            { emoji: '🔬', label: 'Ciencias' },
-            { emoji: '💻', label: 'Tecnología' },
-            { emoji: '🌍', label: 'Idiomas' },
-            { emoji: '🍳', label: 'Gastronomía' },
-            { emoji: '🎨', label: 'Arte & Música' },
-            { emoji: '💼', label: 'Negocios' },
-            { emoji: '💪', label: 'Bienestar' },
-            { emoji: '📚', label: 'Humanidades' },
-          ].map((cat) => (
+          {COURSE_CATEGORIES.map((cat) => (
             <View
-              key={cat.label}
+              key={cat.id}
               className="flex-row items-center gap-1.5 bg-white border border-border rounded-full px-3 py-1.5"
             >
-              <Text style={{ fontSize: 14 }}>{cat.emoji}</Text>
+              <CategoryIcon id={cat.id} size={14} color="#006A75" />
               <Text className="text-xs font-medium text-text-primary">{cat.label}</Text>
             </View>
           ))}

@@ -24,6 +24,8 @@ export interface TutorCourse {
 export interface CreateCoursePayload {
   subject: string;
   description?: string;
+  objectives?: string;
+  experienceYears?: number;
   price: number;
   duration: number;
   modalidad: string;

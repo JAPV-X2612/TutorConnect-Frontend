@@ -11,8 +11,6 @@ export interface TutorProfile {
   descripcion?: string;
   bio?: string;
   subjects?: string[];
-  precioHora?: number;
-  experienceYears?: number;
   estado?: string;
   disponible?: boolean;
   rating?: number;
@@ -31,6 +29,8 @@ export interface UpdateTutorPayload {
   ciudad?: string;
   descripcion?: string;
   bio?: string;
+  subjects?: string[];
+  disponible?: boolean;
 }
 
 export function useTutorProfile() {
