@@ -1,7 +1,7 @@
 import { useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { homeRouteForRole, ROUTES } from '@/constants/routes';
 import { useProfile } from '@/hooks/use-profile';
@@ -50,7 +50,7 @@ export default function Index() {
     }
 
     if (profileError || !profile || !profile.role) {
-      router.replace(ROUTES.ONBOARDING);
+      // Temporarily show error instead of redirecting — for debugging
       return;
     }
 
@@ -65,8 +65,14 @@ export default function Index() {
   }, [isFocused, authLoaded, isSignedIn, profileLoading, profileError, profile, router]);
 
   return (
-    <View className="flex-1 items-center justify-center bg-background">
+    <View className="flex-1 items-center justify-center bg-background px-6">
       <ActivityIndicator size="large" color="#006A75" />
+      {profileError && (
+        <Text className="text-red-500 text-sm text-center mt-4">{profileError}</Text>
+      )}
+      {!profileLoading && isSignedIn && !profile && !profileError && (
+        <Text className="text-gray-500 text-xs text-center mt-2">Cargando perfil...</Text>
+      )}
     </View>
   );
 }

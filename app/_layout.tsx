@@ -1,6 +1,6 @@
 import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -22,8 +22,14 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  const router = useRouter();
+
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+    <ClerkProvider
+      publishableKey={publishableKey}
+      tokenCache={tokenCache}
+      {...({ navigate: (to: string) => router.push(to as any) } as any)}
+    >
       <ClerkLoaded>
         <ThemeProvider value={DefaultTheme}>
           <Stack>
