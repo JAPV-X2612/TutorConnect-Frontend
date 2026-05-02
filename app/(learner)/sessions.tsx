@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useBookingSocket } from '@/hooks/use-booking-socket';
+import { RateSessionModal } from '@/components/features/review/RateSessionModal';
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
@@ -67,10 +68,14 @@ function SessionCard({
   item,
   onCancel,
   onChat,
+  onRate,
+  isRated = false,
 }: {
   item: BookingItem;
   onCancel?: () => void;
   onChat?: () => void;
+  onRate?: () => void;
+  isRated?: boolean;
 }) {
   const st = STATUS_CONFIG[item.status];
   const tutorName = item.tutor ? `${item.tutor.nombre} ${item.tutor.apellido}` : 'Tutor';
@@ -139,6 +144,28 @@ function SessionCard({
           </TouchableOpacity>
         </View>
       )}
+
+      {item.status === 'completed' && onRate && (
+        <TouchableOpacity
+          onPress={onRate}
+          activeOpacity={0.8}
+          accessibilityLabel={isRated ? 'Ver tu calificación' : 'Calificar sesión'}
+          className={`mt-3 py-2.5 rounded-xl flex-row items-center justify-center gap-1.5 ${
+            isRated ? 'bg-secondary/40' : 'bg-primary/10'
+          }`}>
+          <Ionicons
+            name={isRated ? 'star' : 'star-outline'}
+            size={15}
+            color={isRated ? '#F59E0B' : '#006A75'}
+          />
+          <Text
+            className={`text-sm font-semibold ${
+              isRated ? 'text-text-muted' : 'text-primary'
+            }`}>
+            {isRated ? 'Calificada' : 'Calificar sesión'}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -151,11 +178,19 @@ export default function LearnerSessionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [ratingBookingId, setRatingBookingId] = useState<string | null>(null);
+  const [ratedBookingIds, setRatedBookingIds] = useState<Set<string>>(new Set());
 
   const loadBookings = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
-    const res = await api.get<BookingItem[]>(API_ENDPOINTS.myBookings);
-    if (res.data) setBookings(res.data);
+    const [bookingsRes, reviewsRes] = await Promise.all([
+      api.get<BookingItem[]>(API_ENDPOINTS.myBookings),
+      api.get<{ bookingId: string }[]>(API_ENDPOINTS.myReviews),
+    ]);
+    if (bookingsRes.data) setBookings(bookingsRes.data);
+    if (Array.isArray(reviewsRes.data)) {
+      setRatedBookingIds(new Set(reviewsRes.data.map((r) => r.bookingId)));
+    }
     if (!silent) setLoading(false);
   }, []);
 
@@ -200,6 +235,12 @@ export default function LearnerSessionsScreen() {
       router.push('/(learner)/mensajes' as any);
     }
   };
+
+  const ratingTutorName = useMemo(() => {
+    if (!ratingBookingId) return undefined;
+    const b = bookings.find((it) => it.id === ratingBookingId);
+    return b?.tutor ? `${b.tutor.nombre} ${b.tutor.apellido}` : undefined;
+  }, [ratingBookingId, bookings]);
 
   const pendingCount   = bookings.filter((b) => b.status === 'pending').length;
   const confirmedCount = bookings.filter((b) => b.status === 'confirmed').length;
@@ -263,6 +304,8 @@ export default function LearnerSessionsScreen() {
               item={item}
               onCancel={cancelling === item.id ? undefined : () => handleCancel(item.id)}
               onChat={item.tutor?.clerkId ? () => handleChat(item.tutor!.clerkId, item.course?.id) : undefined}
+              onRate={item.status === 'completed' ? () => setRatingBookingId(item.id) : undefined}
+              isRated={ratedBookingIds.has(item.id)}
             />
           )}
           ListEmptyComponent={<EmptyState tab={activeTab} />}
@@ -277,6 +320,18 @@ export default function LearnerSessionsScreen() {
           }
         />
       )}
+
+      <RateSessionModal
+        visible={ratingBookingId !== null}
+        bookingId={ratingBookingId}
+        tutorName={ratingTutorName}
+        onClose={() => setRatingBookingId(null)}
+        onSubmitted={() => {
+          if (ratingBookingId) {
+            setRatedBookingIds((prev) => new Set(prev).add(ratingBookingId));
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }
