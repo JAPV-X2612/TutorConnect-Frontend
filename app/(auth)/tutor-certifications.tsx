@@ -80,7 +80,7 @@ function FileStatusBadge({
 
 export default function TutorCertificationsScreen() {
   const router = useRouter();
-  const { get } = useApiRequest();
+  const { get, post } = useApiRequest();
   useLocalSearchParams<{ tutorId: string }>();
 
   const [certifications, setCertifications] = useState<CertificationFile[]>([]);
@@ -144,7 +144,11 @@ export default function TutorCertificationsScreen() {
       const { data: presigned } = await get(
         API_ENDPOINTS.certificationUploadUrl(file.mimeType, file.name),
       );
-      const { url, fields } = presigned as { url: string; fields: Record<string, string> };
+      const { key, url, fields } = presigned as {
+        key: string;
+        url: string;
+        fields: Record<string, string>;
+      };
 
       // 2. Upload directly to S3
       const s3Form = new FormData();
@@ -153,13 +157,20 @@ export default function TutorCertificationsScreen() {
 
       const s3Response = await fetch(url, { method: 'POST', body: s3Form });
 
-      if (s3Response.ok || s3Response.status === 204) {
-        setCertifications((prev) =>
-          prev.map((f) => (f.id === file.id ? { ...f, status: 'success' as const } : f)),
-        );
-      } else {
+      if (!s3Response.ok && s3Response.status !== 204) {
         throw new Error(`S3 upload failed: ${s3Response.status}`);
       }
+
+      // 3. Notify backend to save the certification record
+      await post(API_ENDPOINTS.certificationConfirm, {
+        key,
+        fileName: file.name,
+        mimeType: file.mimeType,
+      });
+
+      setCertifications((prev) =>
+        prev.map((f) => (f.id === file.id ? { ...f, status: 'success' as const } : f)),
+      );
     } catch {
       setCertifications((prev) =>
         prev.map((f) =>
