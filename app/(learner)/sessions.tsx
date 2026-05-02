@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useBookingSocket } from '@/hooks/use-booking-socket';
+import { RateSessionModal } from '@/components/features/review/RateSessionModal';
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
@@ -67,10 +68,12 @@ function SessionCard({
   item,
   onCancel,
   onChat,
+  onRate,
 }: {
   item: BookingItem;
   onCancel?: () => void;
   onChat?: () => void;
+  onRate?: () => void;
 }) {
   const st = STATUS_CONFIG[item.status];
   const tutorName = item.tutor ? `${item.tutor.nombre} ${item.tutor.apellido}` : 'Tutor';
@@ -139,6 +142,19 @@ function SessionCard({
           </TouchableOpacity>
         </View>
       )}
+
+      {item.status === 'completed' && onRate && (
+        <TouchableOpacity
+          onPress={onRate}
+          activeOpacity={0.8}
+          accessibilityLabel="Calificar sesión"
+          className="mt-3 py-2.5 rounded-xl bg-primary/10 flex-row items-center justify-center gap-1.5">
+          <Ionicons name="star-outline" size={15} color="#006A75" />
+          <Text className="text-sm font-semibold text-primary">
+            Calificar sesión
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -151,6 +167,7 @@ export default function LearnerSessionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [ratingBookingId, setRatingBookingId] = useState<string | null>(null);
 
   const loadBookings = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -200,6 +217,12 @@ export default function LearnerSessionsScreen() {
       router.push('/(learner)/mensajes' as any);
     }
   };
+
+  const ratingTutorName = useMemo(() => {
+    if (!ratingBookingId) return undefined;
+    const b = bookings.find((it) => it.id === ratingBookingId);
+    return b?.tutor ? `${b.tutor.nombre} ${b.tutor.apellido}` : undefined;
+  }, [ratingBookingId, bookings]);
 
   const pendingCount   = bookings.filter((b) => b.status === 'pending').length;
   const confirmedCount = bookings.filter((b) => b.status === 'confirmed').length;
@@ -263,6 +286,7 @@ export default function LearnerSessionsScreen() {
               item={item}
               onCancel={cancelling === item.id ? undefined : () => handleCancel(item.id)}
               onChat={item.tutor?.clerkId ? () => handleChat(item.tutor!.clerkId, item.course?.id) : undefined}
+              onRate={item.status === 'completed' ? () => setRatingBookingId(item.id) : undefined}
             />
           )}
           ListEmptyComponent={<EmptyState tab={activeTab} />}
@@ -277,6 +301,13 @@ export default function LearnerSessionsScreen() {
           }
         />
       )}
+
+      <RateSessionModal
+        visible={ratingBookingId !== null}
+        bookingId={ratingBookingId}
+        tutorName={ratingTutorName}
+        onClose={() => setRatingBookingId(null)}
+      />
     </SafeAreaView>
   );
 }
