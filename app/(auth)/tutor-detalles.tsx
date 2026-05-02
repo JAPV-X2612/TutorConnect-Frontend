@@ -2,47 +2,101 @@ import { Ionicons } from '@expo/vector-icons';
 import { useClerk } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import {
+  ActivityIndicator, KeyboardAvoidingView, Platform,
+  ScrollView, Text, TextInput, TouchableOpacity, View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SelectInput } from '@/components/ui/select-input';
 import { CITIES } from '@/constants/registration-options';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApiRequest } from '@/services/api';
-import { getTutorOnboarding, setTutorOnboarding } from '@/hooks/use-tutor-onboarding';
+import { setTutorOnboarding } from '@/hooks/use-tutor-onboarding';
 
-const MIN_BIO = 30;
+// ── Constants ─────────────────────────────────────────────────────────────────
 
+const MIN_BIO = 80;
+type Step = 'identity' | 'story';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function Label({ text, optional, error }: { text: string; optional?: boolean; error?: boolean }) {
+  return (
+    <Text style={{
+      fontSize: 11, fontWeight: '700', color: error ? '#F87171' : '#64748B',
+      textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
+    }}>
+      {text}
+      {optional && (
+        <Text style={{ fontWeight: '400', textTransform: 'none', letterSpacing: 0 }}>
+          {' '}(opcional)
+        </Text>
+      )}
+    </Text>
+  );
+}
+
+const inputStyle = {
+  backgroundColor: '#fff',
+  borderWidth: 1,
+  borderColor: '#E2E8F0',
+  borderRadius: 14,
+  paddingHorizontal: 16,
+  paddingVertical: 14,
+  fontSize: 14,
+  color: '#0F172A',
+} as const;
+
+const inputErrorStyle = { ...inputStyle, borderColor: '#F87171' } as const;
+
+// ── TutorDetallesScreen ───────────────────────────────────────────────────────
+
+/**
+ * Two-step tutor onboarding screen.
+ *
+ * Step 1 — Identity: name, ID, city.
+ * Step 2 — Story: bio and teaching approach (min 80 chars).
+ *
+ * Subjects, pricing and experience are collected per-course, not at profile level.
+ *
+ * @author TutorConnect Team
+ */
 export default function TutorDetallesScreen() {
   const router = useRouter();
   const clerk = useClerk();
   const { post } = useApiRequest();
-  const saved = getTutorOnboarding();
 
-  const [nombre, setNombre] = useState(saved.nombre);
-  const [apellido, setApellido] = useState(saved.apellido);
+  const [step, setStep] = useState<Step>('identity');
+
+  // Step 1 — Identity
+  const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
   const [cedula, setCedula] = useState('');
   const [ciudad, setCiudad] = useState('');
-  const [bio, setBio] = useState(saved.bio);
+
+  // Step 2 — Story
+  const [bio, setBio] = useState('');
+
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const errors = {
-    nombre: submitted && nombre.trim().length < 2,
-    apellido: submitted && apellido.trim().length < 2,
-    bio: submitted && bio.trim().length < MIN_BIO,
-  };
+  // ── Validation ───────────────────────────────────────────────────────────────
 
-  const canSubmit = nombre.trim().length >= 2 && apellido.trim().length >= 2 && bio.trim().length >= MIN_BIO;
+  const identityValid = nombre.trim().length >= 2 && apellido.trim().length >= 2;
+  const storyValid = bio.trim().length >= MIN_BIO;
+
+  // ── Submit ────────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
     setSubmitted(true);
-    if (!canSubmit) return;
-
+    if (!storyValid) return;
     setLoading(true);
     setError(null);
+
     try {
       const email = clerk.user?.primaryEmailAddress?.emailAddress ?? '';
+
       const response = await post(API_ENDPOINTS.tutorRegister, {
         email,
         nombre: nombre.trim(),
@@ -59,16 +113,13 @@ export default function TutorDetallesScreen() {
           apellido: apellido.trim(),
           bio: bio.trim(),
         });
-        // Silently refresh Clerk metadata — errors here are non-fatal since
-        // index.tsx refetches the DB profile on focus, which is the source
-        // of truth for routing. The JWT will auto-refresh on its own cycle.
         try {
           await clerk.user?.reload();
           await clerk.session?.reload();
         } catch {
-          // ignore Clerk "invalid state" after updateUserMetadata
+          // Non-fatal — index.tsx resolves routing from the DB profile.
         }
-        router.replace('/');
+        router.push('/(auth)/tutor-certifications' as any);
       } else if (response.status === 0) {
         setError('Sin conexión. Verifica tu internet e intenta de nuevo.');
       } else {
@@ -81,95 +132,179 @@ export default function TutorDetallesScreen() {
     }
   };
 
+  // ── Progress bar ─────────────────────────────────────────────────────────────
+
+  const stepIndex = step === 'identity' ? 0 : 1;
+
+  const ProgressBar = () => (
+    <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'center', paddingVertical: 12 }}>
+      {[0, 1].map((i) => (
+        <View key={i} style={{
+          height: 4, borderRadius: 2,
+          width: i === stepIndex ? 32 : 20,
+          backgroundColor: i <= stepIndex ? '#006A75' : '#CBD5E1',
+        }} />
+      ))}
+    </View>
+  );
+
+  // ── Step 1 — Identity ─────────────────────────────────────────────────────────
+
+  if (step === 'identity') {
+    const canContinue = identityValid;
+    const showErrors = submitted && !canContinue;
+
+    return (
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}>
+            <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }} accessibilityLabel="Volver">
+              <Ionicons name="arrow-back" size={22} color="#0F172A" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}><ProgressBar /></View>
+            <View style={{ width: 38 }} />
+          </View>
+
+          <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={{ paddingTop: 8, paddingBottom: 24 }}>
+              <Text style={{ fontSize: 26, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>
+                Cuéntanos quién eres
+              </Text>
+              <Text style={{ fontSize: 14, color: '#64748B', lineHeight: 21 }}>
+                Esta información verifica tu identidad en la plataforma.
+              </Text>
+            </View>
+
+            {/* Nombre + Apellido */}
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+              <View style={{ flex: 1 }}>
+                <Label text="Nombre" error={showErrors && nombre.trim().length < 2} />
+                <TextInput
+                  style={showErrors && nombre.trim().length < 2 ? inputErrorStyle : inputStyle}
+                  placeholder="Juan"
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize="words"
+                  value={nombre}
+                  onChangeText={setNombre}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Label text="Apellido" error={showErrors && apellido.trim().length < 2} />
+                <TextInput
+                  style={showErrors && apellido.trim().length < 2 ? inputErrorStyle : inputStyle}
+                  placeholder="Pérez"
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize="words"
+                  value={apellido}
+                  onChangeText={setApellido}
+                />
+              </View>
+            </View>
+
+            {/* Cédula */}
+            <Label text="Cédula" optional />
+            <TextInput
+              style={[inputStyle, { marginBottom: 16 }]}
+              placeholder="1234567890"
+              placeholderTextColor="#94A3B8"
+              keyboardType="numeric"
+              value={cedula}
+              onChangeText={setCedula}
+            />
+
+            {/* Ciudad */}
+            <Label text="Ciudad" optional />
+            <View style={{ marginBottom: 32 }}>
+              <SelectInput
+                options={CITIES}
+                value={ciudad}
+                onChange={setCiudad}
+                placeholder="¿Dónde das clases?"
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={() => { setSubmitted(true); if (canContinue) setStep('story'); }}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: canContinue ? '#006A75' : '#E2E8F0',
+                borderRadius: 99, paddingVertical: 16, alignItems: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '600', color: canContinue ? '#fff' : '#94A3B8' }}>
+                Continuar
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // ── Step 2 — Story ────────────────────────────────────────────────────────────
+
   return (
-    <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-row items-center px-4 py-3 border-b border-border">
-          <TouchableOpacity onPress={() => router.back()} className="p-1">
-            <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}>
+          <TouchableOpacity onPress={() => setStep('identity')} style={{ padding: 8 }} accessibilityLabel="Volver">
+            <Ionicons name="arrow-back" size={22} color="#0F172A" />
           </TouchableOpacity>
-          <Text className="text-base font-semibold text-text-primary ml-3">Información personal</Text>
+          <View style={{ flex: 1 }}><ProgressBar /></View>
+          <View style={{ width: 38 }} />
         </View>
 
-        <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
-          <View className="pt-5 pb-4">
-            <Text className="text-2xl font-bold text-text-primary mb-1">Cuéntanos sobre ti</Text>
-            <Text className="text-sm text-text-muted">
-              Esta información es para verificar tu identidad. Tus cursos y tarifas los defines después.
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={{ paddingTop: 8, paddingBottom: 24 }}>
+            <Text style={{ fontSize: 26, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>
+              Tu historia como tutor
+            </Text>
+            <Text style={{ fontSize: 14, color: '#64748B', lineHeight: 21 }}>
+              Cuéntales a los estudiantes quién eres, qué te hace especial y cómo enseñas.
+              Esto también mejora cómo te encuentran en la búsqueda.
             </Text>
           </View>
 
           {error && (
-            <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
-              <Text className="text-red-700 text-sm">{error}</Text>
+            <View style={{
+              backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
+              borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16,
+            }}>
+              <Text style={{ color: '#DC2626', fontSize: 13 }}>{error}</Text>
             </View>
           )}
 
-          {/* Name row */}
-          <View className="flex-row gap-3 mb-4">
-            <View className="flex-1">
-              <Text className="text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
-                Nombre {errors.nombre && <Text className="text-red-400 normal-case">— requerido</Text>}
-              </Text>
-              <TextInput
-                className={`bg-white border rounded-xl px-4 py-3.5 text-base text-text-primary ${errors.nombre ? 'border-red-400' : 'border-border'}`}
-                placeholder="Juan"
-                autoCapitalize="words"
-                value={nombre}
-                onChangeText={setNombre}
-              />
-            </View>
-            <View className="flex-1">
-              <Text className="text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
-                Apellido {errors.apellido && <Text className="text-red-400 normal-case">— requerido</Text>}
-              </Text>
-              <TextInput
-                className={`bg-white border rounded-xl px-4 py-3.5 text-base text-text-primary ${errors.apellido ? 'border-red-400' : 'border-border'}`}
-                placeholder="Pérez"
-                autoCapitalize="words"
-                value={apellido}
-                onChangeText={setApellido}
-              />
-            </View>
-          </View>
-
-          {/* Cedula + Ciudad row */}
-          <View className="flex-row gap-3 mb-4">
-            <View className="flex-1">
-              <Text className="text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
-                Cédula <Text className="font-normal normal-case">(opcional)</Text>
-              </Text>
-              <TextInput
-                className="bg-white border border-border rounded-xl px-4 py-3.5 text-base text-text-primary"
-                placeholder="1234567890"
-                keyboardType="numeric"
-                value={cedula}
-                onChangeText={setCedula}
-              />
-            </View>
-            <View className="flex-1">
-              <Text className="text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wide">Ciudad</Text>
-              <SelectInput options={CITIES} value={ciudad} onChange={setCiudad} placeholder="Selecciona" />
-            </View>
-          </View>
-
-          {/* Bio */}
-          <Text className="text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
-            Bibliografía {errors.bio && <Text className="text-red-400 normal-case">— mín. {MIN_BIO} caracteres</Text>}
-          </Text>
-          <View className={`bg-white border rounded-xl mb-1 ${errors.bio ? 'border-red-400' : 'border-border'}`}>
-            <TextInput
-              className="px-4 py-3 text-base text-text-primary"
-              placeholder="Cuéntale a los estudiantes quién eres, tu trayectoria y experiencia..."
-              multiline
-              numberOfLines={5}
-              textAlignVertical="top"
-              value={bio}
-              onChangeText={setBio}
-              style={{ minHeight: 120 }}
-            />
-          </View>
-          <Text className={`text-xs mb-6 ${bio.trim().length >= MIN_BIO ? 'text-text-muted' : 'text-red-400'}`}>
+          <Label
+            text="Sobre ti"
+            error={submitted && bio.trim().length < MIN_BIO}
+          />
+          <TextInput
+            style={{
+              ...inputStyle,
+              minHeight: 140, textAlignVertical: 'top', marginBottom: 4,
+              borderColor: submitted && bio.trim().length < MIN_BIO ? '#F87171' : '#E2E8F0',
+            }}
+            placeholder={
+              'Ej: Soy ingeniero de sistemas con 4 años enseñando programación. ' +
+              'Me especializo en hacer temas complejos simples mediante ejemplos ' +
+              'prácticos del mundo real. Mis estudiantes suelen ver resultados desde la primera sesión...'
+            }
+            placeholderTextColor="#94A3B8"
+            multiline
+            maxLength={800}
+            value={bio}
+            onChangeText={setBio}
+          />
+          <Text style={{
+            fontSize: 11, textAlign: 'right', marginBottom: 28,
+            color: bio.trim().length >= MIN_BIO ? '#94A3B8' : '#F87171',
+          }}>
             {bio.trim().length}/{MIN_BIO} mín.
           </Text>
 
@@ -177,15 +312,18 @@ export default function TutorDetallesScreen() {
             onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.85}
-            className={`rounded-full py-4 items-center flex-row justify-center gap-2 ${canSubmit ? 'bg-primary' : 'bg-gray-200'}`}
+            style={{
+              backgroundColor: storyValid ? '#006A75' : '#E2E8F0',
+              borderRadius: 99, paddingVertical: 16, alignItems: 'center',
+              flexDirection: 'row', justifyContent: 'center', gap: 8,
+            }}
           >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className={`text-base font-semibold ${canSubmit ? 'text-white' : 'text-gray-400'}`}>
-                Crear perfil de tutor
-              </Text>
-            )}
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={{ fontSize: 16, fontWeight: '600', color: storyValid ? '#fff' : '#94A3B8' }}>
+                  Crear mi perfil de tutor
+                </Text>
+            }
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>

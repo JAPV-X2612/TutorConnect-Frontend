@@ -51,6 +51,11 @@ export const API_ENDPOINTS = {
   tutorBookings: `${API_BASE_URL}/bookings/tutor`,
   bookingStatus: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/status`,
   cancelBooking: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/cancel`,
+  // Search endpoints
+  searchCourses: (q: string, limit = 10) =>
+    `${API_BASE_URL}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+  searchRecommendations: (limit = 10) =>
+    `${API_BASE_URL}/search/recommendations?limit=${limit}`,
   // Messaging endpoints
   messagingChannels: `${API_BASE_URL}/messaging/channels`,
   messagingMessages: (channelId: number) =>

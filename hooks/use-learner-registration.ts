@@ -31,7 +31,9 @@ export function useLearnerRegistration() {
       if (!sessionId) { setError('generic'); return; }
 
       await setActive!({ session: sessionId });
-      router.push('/(auth)/profile-setup' as any);
+      // Let index.tsx decide: new users (no studentType) go to profile-setup,
+      // returning users go to their dashboard.
+      router.replace('/');
     } catch (err: any) {
       if (err?.code === 'ERR_CANCELED' || err?.message?.includes('cancel')) {
         setError('canceled');

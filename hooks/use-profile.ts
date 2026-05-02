@@ -16,7 +16,10 @@ export interface UserProfile {
   organizationName?: string | null;
   academicProgram?: string | null;
   interests?: string[] | null;
+  learningGoal?: string | null;
+  studentType?: string | null;
   currentSemester?: number | null;
+  schoolGrade?: number | null;
 }
 
 export interface UpdateProfilePayload {
@@ -26,6 +29,10 @@ export interface UpdateProfilePayload {
   organizationName?: string;
   academicProgram?: string;
   interests?: string[];
+  learningGoal?: string;
+  studentType?: string;
+  currentSemester?: number;
+  schoolGrade?: number;
 }
 
 /**

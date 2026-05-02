@@ -54,6 +54,13 @@ export default function Index() {
       return;
     }
 
+    // New learners who haven't completed profile setup (studentType is null)
+    // are sent to profile-setup regardless of how they authenticated.
+    if (profile.role === 'LEARNER' && !profile.studentType) {
+      router.replace('/(auth)/profile-setup' as any);
+      return;
+    }
+
     router.replace(homeRouteForRole(profile.role) as any);
   }, [isFocused, authLoaded, isSignedIn, profileLoading, profileError, profile, router]);
 

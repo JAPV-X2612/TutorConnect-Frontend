@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 10;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 interface CertificationFile {
   id: string;
@@ -81,7 +81,7 @@ function FileStatusBadge({
 
 export default function TutorCertificationsScreen() {
   const router = useRouter();
-  const { get, post } = useApiRequest();
+  const { post } = useApiRequest();
   const { tutorId } = useLocalSearchParams<{ tutorId: string }>();
 
   const [certifications, setCertifications] = useState<CertificationFile[]>([]);
@@ -200,19 +200,13 @@ export default function TutorCertificationsScreen() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      // Re-confirm with backend that certifications were recorded before navigating.
-      const result = await get<{ hasCertificaciones?: boolean }>(API_ENDPOINTS.tutorMe);
-      if (result.data?.hasCertificaciones) {
-        router.replace('/(tutor)/dashboard' as any);
-      } else {
-        router.replace('/(auth)/solicitud-enviada' as any);
-      }
+      router.push('/(auth)/tutor-primer-curso' as any);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleSkip = () => router.replace('/(auth)/solicitud-enviada' as any);
+  const handleSkip = () => router.push('/(auth)/tutor-primer-curso' as any);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -228,15 +222,13 @@ export default function TutorCertificationsScreen() {
         <View style={{ width: 32 }} />
       </View>
 
-      {/* Step dots */}
+      {/* Step dots — step 3 of 4 is active */}
       <View className="flex-row justify-center gap-2 mb-2">
         {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
           <View
             key={i}
-            className={`h-2 rounded-full ${
-              i + 1 === TOTAL_STEPS ? 'bg-primary' : 'bg-border'
-            }`}
-            style={{ width: i + 1 === TOTAL_STEPS ? 28 : 8 }}
+            className={`h-2 rounded-full ${i + 1 < TOTAL_STEPS ? 'bg-primary' : 'bg-border'}`}
+            style={{ width: i + 1 === TOTAL_STEPS - 1 ? 28 : 8 }}
           />
         ))}
       </View>
@@ -250,7 +242,7 @@ export default function TutorCertificationsScreen() {
         <View className="px-5 mt-4 mb-6">
           <Text className="text-3xl font-extrabold text-text-primary mb-2">Certificaciones</Text>
           <Text className="text-sm text-text-muted leading-5">
-            Paso 3 de 3: Sube tus diplomas o certificados para verificar tu perfil.
+            Paso 3 de 4: Sube tus diplomas o certificados para verificar tu perfil.
           </Text>
         </View>
 
