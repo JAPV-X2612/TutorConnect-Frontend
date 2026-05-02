@@ -65,6 +65,7 @@ export const API_ENDPOINTS = {
     `${API_BASE_URL}/messaging/channels/${channelId}/messages`,
   // Review endpoints
   reviews: `${API_BASE_URL}/reviews`,
+  myReviews: `${API_BASE_URL}/reviews/me`,
   reviewByBooking: (bookingId: string) =>
     `${API_BASE_URL}/reviews/booking/${bookingId}`,
 };

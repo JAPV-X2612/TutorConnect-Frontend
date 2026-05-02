@@ -69,11 +69,13 @@ function SessionCard({
   onCancel,
   onChat,
   onRate,
+  isRated = false,
 }: {
   item: BookingItem;
   onCancel?: () => void;
   onChat?: () => void;
   onRate?: () => void;
+  isRated?: boolean;
 }) {
   const st = STATUS_CONFIG[item.status];
   const tutorName = item.tutor ? `${item.tutor.nombre} ${item.tutor.apellido}` : 'Tutor';
@@ -147,11 +149,20 @@ function SessionCard({
         <TouchableOpacity
           onPress={onRate}
           activeOpacity={0.8}
-          accessibilityLabel="Calificar sesión"
-          className="mt-3 py-2.5 rounded-xl bg-primary/10 flex-row items-center justify-center gap-1.5">
-          <Ionicons name="star-outline" size={15} color="#006A75" />
-          <Text className="text-sm font-semibold text-primary">
-            Calificar sesión
+          accessibilityLabel={isRated ? 'Ver tu calificación' : 'Calificar sesión'}
+          className={`mt-3 py-2.5 rounded-xl flex-row items-center justify-center gap-1.5 ${
+            isRated ? 'bg-secondary/40' : 'bg-primary/10'
+          }`}>
+          <Ionicons
+            name={isRated ? 'star' : 'star-outline'}
+            size={15}
+            color={isRated ? '#F59E0B' : '#006A75'}
+          />
+          <Text
+            className={`text-sm font-semibold ${
+              isRated ? 'text-text-muted' : 'text-primary'
+            }`}>
+            {isRated ? 'Calificada' : 'Calificar sesión'}
           </Text>
         </TouchableOpacity>
       )}
@@ -168,11 +179,18 @@ export default function LearnerSessionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [ratingBookingId, setRatingBookingId] = useState<string | null>(null);
+  const [ratedBookingIds, setRatedBookingIds] = useState<Set<string>>(new Set());
 
   const loadBookings = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
-    const res = await api.get<BookingItem[]>(API_ENDPOINTS.myBookings);
-    if (res.data) setBookings(res.data);
+    const [bookingsRes, reviewsRes] = await Promise.all([
+      api.get<BookingItem[]>(API_ENDPOINTS.myBookings),
+      api.get<{ bookingId: string }[]>(API_ENDPOINTS.myReviews),
+    ]);
+    if (bookingsRes.data) setBookings(bookingsRes.data);
+    if (Array.isArray(reviewsRes.data)) {
+      setRatedBookingIds(new Set(reviewsRes.data.map((r) => r.bookingId)));
+    }
     if (!silent) setLoading(false);
   }, []);
 
@@ -287,6 +305,7 @@ export default function LearnerSessionsScreen() {
               onCancel={cancelling === item.id ? undefined : () => handleCancel(item.id)}
               onChat={item.tutor?.clerkId ? () => handleChat(item.tutor!.clerkId, item.course?.id) : undefined}
               onRate={item.status === 'completed' ? () => setRatingBookingId(item.id) : undefined}
+              isRated={ratedBookingIds.has(item.id)}
             />
           )}
           ListEmptyComponent={<EmptyState tab={activeTab} />}
@@ -307,6 +326,11 @@ export default function LearnerSessionsScreen() {
         bookingId={ratingBookingId}
         tutorName={ratingTutorName}
         onClose={() => setRatingBookingId(null)}
+        onSubmitted={() => {
+          if (ratingBookingId) {
+            setRatedBookingIds((prev) => new Set(prev).add(ratingBookingId));
+          }
+        }}
       />
     </SafeAreaView>
   );
