@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   ActivityIndicator, FlatList, ScrollView, Text,
   TextInput, TouchableOpacity, View,
@@ -9,24 +9,27 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 import { COURSE_CATEGORIES } from '@/constants/registration-options';
+import { CategoryIcon } from '@/constants/category-icons';
 
 const AVATAR_COLORS = ['#006A75', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 function avatarColor(name: string) {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 }
 
-interface CourseListing {
+interface Course {
   id: string;
   subject: string;
   description?: string;
   price: number;
   duration: number;
   modalidad: string;
-  schedule: { day: string; startTime: string; endTime: string }[];
+  academicLevel?: string;
+  schedule?: { day: string; startTime: string; endTime: string }[];
+  score?: number;
   tutor: { id: string; nombre: string; apellido: string; rating?: number; disponible: boolean };
 }
 
-function CourseCard({ course, onPress }: { course: CourseListing; onPress: () => void }) {
+function CourseCard({ course, onPress }: { course: Course; onPress: () => void }) {
   const initials = `${course.tutor.nombre.charAt(0)}${course.tutor.apellido.charAt(0)}`.toUpperCase();
   const color = avatarColor(course.tutor.nombre);
   const dayCount = course.schedule?.length ?? 0;
@@ -96,111 +99,234 @@ function CourseCard({ course, onPress }: { course: CourseListing; onPress: () =>
 export default function LearnerMarketplaceScreen() {
   const api = useApiRequest();
   const router = useRouter();
-  const [courses, setCourses] = useState<CourseListing[]>([]);
+
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [recommendations, setRecommendations] = useState<Course[]>([]);
+  const [searchResults, setSearchResults] = useState<Course[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [recoLoading, setRecoLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'paraTi' | 'explorar'>('paraTi');
 
+  // General course listing
   const fetchCourses = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await api.get<CourseListing[]>(API_ENDPOINTS.courseListings());
+    const result = await api.get<Course[]>(API_ENDPOINTS.courseListings());
     if (result.error) setError('No se pudieron cargar los cursos.');
-    else setCourses(result.data ?? []);
+    else setAllCourses(result.data ?? []);
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchCourses(); }, [fetchCourses]);
 
-  const filtered = courses.filter((c) => {
-    const matchesSearch = search.trim()
-      ? c.subject.toLowerCase().includes(search.toLowerCase()) ||
-        `${c.tutor.nombre} ${c.tutor.apellido}`.toLowerCase().includes(search.toLowerCase())
-      : true;
+  // Personalized recommendations
+  const apiRef = useRef(api);
+  apiRef.current = api;
+
+  useEffect(() => {
+    setRecoLoading(true);
+    apiRef.current.get<Course[]>(API_ENDPOINTS.searchRecommendations(5)).then((res) => {
+      if (Array.isArray(res.data)) setRecommendations(res.data);
+      setRecoLoading(false);
+    });
+  }, []);
+
+  // Semantic search on submit
+  const handleSearch = async () => {
+    const q = search.trim();
+    if (!q) { setSearchResults(null); return; }
+    setSearchLoading(true);
+    const res = await api.get<Course[]>(API_ENDPOINTS.searchCourses(q, 10));
+    setSearchResults(Array.isArray(res.data) ? res.data : []);
+    setSearchLoading(false);
+  };
+
+  const navigateToCourse = (courseId: string) =>
+    router.push({ pathname: '/(learner)/course/[courseId]', params: { courseId } } as any);
+
+  // Filtered general listing (local filter by category only)
+  const filtered = allCourses.filter((c) => {
     const matchesCategory = activeCategory
       ? COURSE_CATEGORIES.find((cat) => cat.id === activeCategory)
           ?.subjects.some((s) => c.subject.toLowerCase().includes(s.toLowerCase()))
       : true;
-    return matchesSearch && matchesCategory;
+    return matchesCategory;
   });
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      {/* Header */}
       <View className="px-6 pt-5 pb-3">
         <Text className="text-2xl font-bold text-text-primary mb-1">Explorar cursos</Text>
-        <Text className="text-text-muted text-sm">
-          Desde cálculo multivariado hasta cocina francesa
-        </Text>
       </View>
 
-      <View className="px-6 mb-3">
-        <View className="flex-row items-center bg-white border border-border rounded-xl px-3 gap-2">
+      {/* Search bar */}
+      <View style={{ paddingHorizontal: 24, marginBottom: 12 }}>
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+          borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 14, paddingHorizontal: 12, gap: 8,
+          width: '100%',
+        }}>
           <Ionicons name="search-outline" size={18} color="#94A3B8" />
           <TextInput
-            className="flex-1 py-3 text-base text-text-primary"
-            placeholder="Buscar curso o tutor..."
+            style={{ flex: 1, paddingVertical: 12, fontSize: 14, color: '#0F172A' }}
+            placeholder="Buscar con IA..."
             placeholderTextColor="#94A3B8"
             value={search}
-            onChangeText={setSearch}
+            onChangeText={(t) => { setSearch(t); if (!t.trim()) setSearchResults(null); }}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
           />
           {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
+            <TouchableOpacity onPress={() => { setSearch(''); setSearchResults(null); }}>
               <Ionicons name="close-circle" size={18} color="#94A3B8" />
             </TouchableOpacity>
           )}
+          {searchLoading && <ActivityIndicator size="small" color="#006A75" />}
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 24, gap: 8, paddingBottom: 4 }}
-        className="mb-3" style={{ maxHeight: 44 }}>
-        <TouchableOpacity onPress={() => setActiveCategory(null)}
-          className={`px-4 py-2 rounded-full border ${!activeCategory ? 'bg-primary border-primary' : 'bg-white border-border'}`}>
-          <Text className={`text-xs font-semibold ${!activeCategory ? 'text-white' : 'text-text-muted'}`}>Todos</Text>
-        </TouchableOpacity>
-        {COURSE_CATEGORIES.map((cat) => (
-          <TouchableOpacity key={cat.id}
-            onPress={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
-            className={`flex-row items-center gap-1.5 px-4 py-2 rounded-full border ${activeCategory === cat.id ? 'bg-primary border-primary' : 'bg-white border-border'}`}>
-            <Text style={{ fontSize: 12 }}>{cat.emoji}</Text>
-            <Text className={`text-xs font-semibold ${activeCategory === cat.id ? 'text-white' : 'text-text-muted'}`}>{cat.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Tabs — hidden during search */}
+      {searchResults === null && (
+        <View style={{
+          flexDirection: 'row', paddingHorizontal: 24, marginBottom: 16, gap: 8,
+        }}>
+          {([
+            { key: 'paraTi', label: 'Para ti', icon: 'sparkles' },
+            { key: 'explorar', label: 'Explorar', icon: 'compass-outline' },
+          ] as const).map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                paddingHorizontal: 18, paddingVertical: 9, borderRadius: 99, borderWidth: 1.5,
+                backgroundColor: activeTab === tab.key ? '#006A75' : '#fff',
+                borderColor: activeTab === tab.key ? '#006A75' : '#E2E8F0',
+              }}
+            >
+              <Ionicons
+                name={tab.icon as any}
+                size={14}
+                color={activeTab === tab.key ? '#fff' : '#64748B'}
+              />
+              <Text style={{
+                fontSize: 13, fontWeight: '600',
+                color: activeTab === tab.key ? '#fff' : '#64748B',
+              }}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
-      {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#006A75" />
-        </View>
-      ) : error ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-red-600 text-center mb-4">{error}</Text>
-          <TouchableOpacity onPress={fetchCourses} className="bg-primary rounded-full px-6 py-3">
-            <Text className="text-white font-semibold">Reintentar</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Semantic search results */}
+      {searchResults !== null ? (
+        <FlatList
+          data={searchResults}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24, flexGrow: 1 }}
+          ListHeaderComponent={
+            <Text style={{ color: '#64748B', fontSize: 13, marginBottom: 12 }}>
+              {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} para "{search}"
+            </Text>
+          }
+          renderItem={({ item }) => <CourseCard course={item} onPress={() => navigateToCourse(item.id)} />}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', paddingTop: 60 }}>
+              <Ionicons name="search-outline" size={48} color="#CBD5E1" />
+              <Text style={{ color: '#0F172A', fontWeight: '600', fontSize: 18, marginTop: 16 }}>Sin resultados</Text>
+              <Text style={{ color: '#64748B', fontSize: 14, textAlign: 'center', marginTop: 8 }}>
+                Intenta con otras palabras
+              </Text>
+            </View>
+          }
+        />
+
+      ) : activeTab === 'paraTi' ? (
+        /* ── Para ti tab ── */
+        <FlatList
+          data={recommendations}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24, flexGrow: 1 }}
+          renderItem={({ item }) => <CourseCard course={item} onPress={() => navigateToCourse(item.id)} />}
+          ListEmptyComponent={
+            recoLoading ? (
+              <View style={{ alignItems: 'center', paddingTop: 60 }}>
+                <ActivityIndicator color="#006A75" />
+              </View>
+            ) : (
+              <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 24 }}>
+                <Ionicons name="sparkles-outline" size={48} color="#CBD5E1" />
+                <Text style={{ color: '#0F172A', fontWeight: '600', fontSize: 18, marginTop: 16 }}>
+                  Sin recomendaciones
+                </Text>
+                <Text style={{ color: '#64748B', fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
+                  Completa tu perfil con tu meta de aprendizaje para recibir sugerencias personalizadas.
+                </Text>
+              </View>
+            )
+          }
+        />
+
       ) : (
+        /* ── Explorar tab ── */
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24, flexGrow: 1 }}
+          contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
+          ListHeaderComponent={
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 24, gap: 8, paddingBottom: 4 }}
+              style={{ maxHeight: 44, marginBottom: 16 }}>
+              <TouchableOpacity onPress={() => setActiveCategory(null)} style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                paddingHorizontal: 16, paddingVertical: 8, borderRadius: 99, borderWidth: 1,
+                backgroundColor: !activeCategory ? '#006A75' : '#fff',
+                borderColor: !activeCategory ? '#006A75' : '#E2E8F0',
+              }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: !activeCategory ? '#fff' : '#64748B' }}>
+                  Todos
+                </Text>
+              </TouchableOpacity>
+              {COURSE_CATEGORIES.map((cat) => (
+                <TouchableOpacity key={cat.id}
+                  onPress={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 6,
+                    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 99, borderWidth: 1,
+                    backgroundColor: activeCategory === cat.id ? '#006A75' : '#fff',
+                    borderColor: activeCategory === cat.id ? '#006A75' : '#E2E8F0',
+                  }}>
+                  <CategoryIcon id={cat.id} size={12} color={activeCategory === cat.id ? '#fff' : '#006A75'} />
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: activeCategory === cat.id ? '#fff' : '#64748B' }}>
+                    {cat.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          }
           renderItem={({ item }) => (
-            <CourseCard course={item}
-              onPress={() => router.push({
-                pathname: '/(learner)/course/[courseId]',
-                params: { courseId: item.id },
-              } as any)}
-            />
+            <View style={{ paddingHorizontal: 24 }}>
+              <CourseCard course={item} onPress={() => navigateToCourse(item.id)} />
+            </View>
           )}
           ListEmptyComponent={
-            <View className="flex-1 items-center justify-center pt-20">
-              <Ionicons name="search-outline" size={48} color="#CBD5E1" />
-              <Text className="text-text-primary font-semibold text-lg mt-4">Sin resultados</Text>
-              <Text className="text-text-muted text-sm text-center mt-2 leading-5">
-                {search ? `No hay cursos para "${search}"` : 'Aún no hay cursos publicados.'}
-              </Text>
-            </View>
+            !loading ? (
+              <View style={{ alignItems: 'center', paddingTop: 60 }}>
+                <Ionicons name="book-outline" size={48} color="#CBD5E1" />
+                <Text style={{ color: '#0F172A', fontWeight: '600', fontSize: 18, marginTop: 16 }}>Sin cursos</Text>
+                <Text style={{ color: '#64748B', fontSize: 14, textAlign: 'center', marginTop: 8 }}>
+                  {activeCategory ? 'No hay cursos en esta categoría.' : 'Aún no hay cursos publicados.'}
+                </Text>
+              </View>
+            ) : null
           }
         />
       )}

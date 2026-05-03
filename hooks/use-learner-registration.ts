@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOAuth } from '@clerk/clerk-expo';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 
 export type LearnerAuthError = 'network' | 'generic' | 'canceled';
@@ -20,7 +21,9 @@ export function useLearnerRegistration() {
     setError(null);
     setLoading(true);
     try {
-      const { createdSessionId, signUp, setActive } = await startOAuthFlow();
+      const { createdSessionId, signUp, setActive } = await startOAuthFlow({
+        redirectUrl: Linking.createURL('/oauth-native-callback'),
+      });
       let sessionId: string | null = createdSessionId ?? null;
 
       if (!sessionId && signUp?.status === 'missing_requirements') {
@@ -31,7 +34,9 @@ export function useLearnerRegistration() {
       if (!sessionId) { setError('generic'); return; }
 
       await setActive!({ session: sessionId });
-      router.push('/(auth)/profile-setup' as any);
+      // Let index.tsx decide: new users (no studentType) go to profile-setup,
+      // returning users go to their dashboard.
+      router.replace('/');
     } catch (err: any) {
       if (err?.code === 'ERR_CANCELED' || err?.message?.includes('cancel')) {
         setError('canceled');

@@ -21,7 +21,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.santiago.diazr.TutorConnectFrontend"
+      "package": "com.santiago.diazr.TutorConnectFrontend",
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",
@@ -41,7 +42,16 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

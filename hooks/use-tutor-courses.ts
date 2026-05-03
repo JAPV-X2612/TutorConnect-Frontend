@@ -2,6 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 
+export interface ScheduleSlot {
+  day: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  startTime: string;
+  endTime: string;
+}
+
 export interface TutorCourse {
   id: string;
   subject: string;
@@ -10,6 +16,7 @@ export interface TutorCourse {
   duration: number;
   modalidad: string;
   academicLevel?: string;
+  schedule: ScheduleSlot[];
   isActive: boolean;
   createdAt: string;
 }
@@ -17,10 +24,13 @@ export interface TutorCourse {
 export interface CreateCoursePayload {
   subject: string;
   description?: string;
+  objectives?: string;
+  experienceYears?: number;
   price: number;
   duration: number;
   modalidad: string;
   academicLevel?: string;
+  schedule?: ScheduleSlot[];
 }
 
 export function useTutorCourses() {

@@ -10,12 +10,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SelectInput } from '@/components/ui/select-input';
 import { InterestPicker } from '@/components/ui/interest-picker';
 import { ACADEMIC_LEVELS, MODALIDADES, INTERESTS } from '@/constants/registration-options';
-import { useTutorCourses } from '@/hooks/use-tutor-courses';
+import { useTutorCourses, type ScheduleSlot } from '@/hooks/use-tutor-courses';
 
 type Duration = 30 | 60 | 90;
-type Day = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
-
-interface ScheduleSlot { day: Day; startTime: string; endTime: string; }
+type Day = ScheduleSlot['day'];
 interface CertFile { id: string; name: string; uri: string; mimeType: string; }
 
 const DAYS: { key: Day; label: string }[] = [
@@ -64,6 +62,8 @@ export default function CrearCursoScreen() {
 
   const [subject, setSubject] = useState<string[]>(params.subject ? [params.subject] : []);
   const [description, setDescription] = useState(params.description ?? '');
+  const [objectives, setObjectives] = useState('');
+  const [experienceYears, setExperienceYears] = useState('');
   const [price, setPrice] = useState(params.price ?? '');
   const [duration, setDuration] = useState<Duration>((Number(params.duration) as Duration) || 60);
   const [modalidad, setModalidad] = useState(params.modalidad ?? '');
@@ -76,11 +76,17 @@ export default function CrearCursoScreen() {
 
   const errors = {
     subject: submitted && subject.length === 0,
+    description: submitted && description.trim().length < 20,
     price: submitted && (!price || Number(price) <= 0),
     modalidad: submitted && !modalidad,
     schedule: submitted && schedule.length === 0,
   };
-  const canSubmit = subject.length > 0 && !!price && Number(price) > 0 && !!modalidad && schedule.length > 0;
+  const canSubmit =
+    subject.length > 0 &&
+    description.trim().length >= 20 &&
+    !!price && Number(price) > 0 &&
+    !!modalidad &&
+    schedule.length > 0;
 
   const toggleDay = (day: Day) => {
     setSchedule((prev) => {
@@ -112,9 +118,12 @@ export default function CrearCursoScreen() {
     if (!canSubmit) return;
     setLoading(true);
 
+    const exp = parseInt(experienceYears, 10);
     const payload = {
       subject: subject[0],
-      description: description.trim() || undefined,
+      description: description.trim(),
+      objectives: objectives.trim() || undefined,
+      experienceYears: !isNaN(exp) && exp >= 0 ? exp : undefined,
       price: Number(price),
       duration,
       modalidad,
@@ -177,14 +186,43 @@ export default function CrearCursoScreen() {
 
           {/* Description */}
           <Text className="text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
-            Descripción <Text className="font-normal normal-case">(opcional)</Text>
+            Descripción del curso {errors.description && <Text className="text-red-400 normal-case">— mín. 20 caracteres</Text>}
           </Text>
           <TextInput
-            className="bg-white border border-border rounded-xl px-4 py-3 text-base text-text-primary mb-4"
-            placeholder="¿Qué aprenderán los estudiantes en este curso?"
+            className={`bg-white border rounded-xl px-4 py-3 text-base text-text-primary mb-1 ${errors.description ? 'border-red-400' : 'border-border'}`}
+            placeholder="¿De qué trata el curso? Contexto, enfoque, metodología..."
             multiline numberOfLines={3} textAlignVertical="top"
             value={description} onChangeText={setDescription}
             style={{ minHeight: 80 }}
+          />
+          <Text className={`text-xs mb-4 ${description.trim().length >= 20 ? 'text-text-muted' : 'text-red-400'}`}>
+            {description.trim().length}/20 mín.
+          </Text>
+
+          {/* Objectives */}
+          <Text className="text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
+            ¿Qué aprenderán? <Text className="font-normal normal-case">(opcional · mejora las recomendaciones)</Text>
+          </Text>
+          <TextInput
+            className="bg-white border border-border rounded-xl px-4 py-3 text-base text-text-primary mb-4"
+            placeholder="Ej: derivadas, integrales, límites, series de Taylor, ecuaciones diferenciales..."
+            multiline numberOfLines={3} textAlignVertical="top"
+            value={objectives} onChangeText={setObjectives}
+            style={{ minHeight: 80 }}
+          />
+
+          {/* Experience */}
+          <Text className="text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wide">
+            Años de experiencia en esta materia <Text className="font-normal normal-case">(opcional)</Text>
+          </Text>
+          <TextInput
+            className="bg-white border border-border rounded-xl px-4 py-3 text-base text-text-primary mb-4"
+            placeholder="Ej: 3"
+            placeholderTextColor="#94A3B8"
+            keyboardType="number-pad"
+            maxLength={2}
+            value={experienceYears}
+            onChangeText={setExperienceYears}
           />
 
           {/* Price + Duration */}

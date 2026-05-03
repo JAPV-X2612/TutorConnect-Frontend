@@ -16,7 +16,10 @@ export interface UserProfile {
   organizationName?: string | null;
   academicProgram?: string | null;
   interests?: string[] | null;
+  learningGoal?: string | null;
+  studentType?: string | null;
   currentSemester?: number | null;
+  schoolGrade?: number | null;
 }
 
 export interface UpdateProfilePayload {
@@ -26,6 +29,10 @@ export interface UpdateProfilePayload {
   organizationName?: string;
   academicProgram?: string;
   interests?: string[];
+  learningGoal?: string;
+  studentType?: string;
+  currentSemester?: number;
+  schoolGrade?: number;
 }
 
 /**
@@ -62,7 +69,7 @@ export function useProfile() {
     api.get<UserProfile>(API_ENDPOINTS.usersMe).then((result) => {
       if (cancelled) return;
       if (result.error || !result.data) {
-        setError('No se pudo cargar el perfil.');
+        setError(`Error ${result.status}: ${result.error ?? 'sin datos'} | URL: ${API_ENDPOINTS.usersMe}`);
         setProfile(null);
       } else {
         setProfile(result.data);

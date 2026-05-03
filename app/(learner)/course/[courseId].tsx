@@ -26,6 +26,7 @@ interface CourseDetail {
   duration: number;
   modalidad: string;
   academicLevel?: string;
+  experienceYears?: number;
   schedule: { day: string; startTime: string; endTime: string }[];
   tutor: {
     id: string;
@@ -34,7 +35,6 @@ interface CourseDetail {
     apellido: string;
     bio?: string;
     rating?: number;
-    experienceYears?: number;
     disponible: boolean;
     subjects?: string[];
     email?: string;
@@ -75,12 +75,19 @@ export default function CourseDetailScreen() {
   const handleConsultar = async () => {
     if (!course?.tutor?.clerkId) return;
     setChatLoading(true);
-    await api.post(API_ENDPOINTS.messagingChannels, {
+    const res = await api.post<{ id: number }>(API_ENDPOINTS.messagingChannels, {
       otherClerkId: course.tutor.clerkId,
       courseId,
     });
     setChatLoading(false);
-    router.push('/(learner)/mensajes' as any);
+    if (res.data?.id) {
+      router.push({
+        pathname: '/(learner)/mensajes',
+        params: { channelId: String(res.data.id) },
+      } as any);
+    } else {
+      router.push('/(learner)/mensajes' as any);
+    }
   };
 
   useEffect(() => {
@@ -190,9 +197,9 @@ export default function CourseDetailScreen() {
                     <Text className="text-text-muted text-sm">{course.tutor.rating.toFixed(1)}</Text>
                   </View>
                 )}
-                {course.tutor.experienceYears != null && (
+                {course.experienceYears != null && (
                   <Text className="text-text-muted text-sm">
-                    {course.tutor.experienceYears} año{course.tutor.experienceYears !== 1 ? 's' : ''} exp.
+                    {course.experienceYears} año{course.experienceYears !== 1 ? 's' : ''} exp.
                   </Text>
                 )}
                 {course.tutor.disponible && (

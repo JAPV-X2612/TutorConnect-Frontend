@@ -1,5 +1,4 @@
 import { API_ENDPOINTS } from '@/constants/api';
-import { getTutorOnboarding } from '@/hooks/use-tutor-onboarding';
 import { useApiRequest } from '@/services/api';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -18,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 10;
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 interface CertificationFile {
   id: string;
@@ -82,7 +81,7 @@ function FileStatusBadge({
 export default function TutorCertificationsScreen() {
   const router = useRouter();
   const { get, post } = useApiRequest();
-  const { tutorId } = useLocalSearchParams<{ tutorId: string }>();
+  useLocalSearchParams<{ tutorId: string }>();
 
   const [certifications, setCertifications] = useState<CertificationFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -141,33 +140,37 @@ export default function TutorCertificationsScreen() {
       prev.map((f) => (f.id === file.id ? { ...f, status: 'uploading' as const } : f)),
     );
     try {
-      const formData = new FormData();
-      formData.append('file', {
-        uri: file.uri,
-        name: file.name,
-        type: file.mimeType,
-      } as any);
+      // 1. Get presigned POST URL from backend
+      const { data: presigned } = await get(
+        API_ENDPOINTS.certificationUploadUrl(file.mimeType, file.name),
+      );
+      const { key, url, fields } = presigned as {
+        key: string;
+        url: string;
+        fields: Record<string, string>;
+      };
 
-      const { tutorId } = getTutorOnboarding();
-      const uploadUrl = tutorId
-        ? API_ENDPOINTS.uploadCertification(tutorId)
-        : API_ENDPOINTS.uploadCertification('me');
-      const response = await post(uploadUrl, formData, true);
+      // 2. Upload directly to S3
+      const s3Form = new FormData();
+      Object.entries(fields).forEach(([k, v]) => s3Form.append(k, v));
+      s3Form.append('file', { uri: file.uri, name: file.name, type: file.mimeType } as any);
 
-      if (response.status === 201 || response.status === 200) {
-        setCertifications((prev) =>
-          prev.map((f) => (f.id === file.id ? { ...f, status: 'success' as const } : f)),
-        );
-      } else {
-        const raw = (response.data as any)?.message;
-        const errorMessage: string =
-          typeof raw === 'string' ? raw : 'Error al subir el archivo.';
-        setCertifications((prev) =>
-          prev.map((f) =>
-            f.id === file.id ? { ...f, status: 'error' as const, errorMessage } : f,
-          ),
-        );
+      const s3Response = await fetch(url, { method: 'POST', body: s3Form });
+
+      if (!s3Response.ok && s3Response.status !== 204) {
+        throw new Error(`S3 upload failed: ${s3Response.status}`);
       }
+
+      // 3. Notify backend to save the certification record
+      await post(API_ENDPOINTS.certificationConfirm, {
+        key,
+        fileName: file.name,
+        mimeType: file.mimeType,
+      });
+
+      setCertifications((prev) =>
+        prev.map((f) => (f.id === file.id ? { ...f, status: 'success' as const } : f)),
+      );
     } catch {
       setCertifications((prev) =>
         prev.map((f) =>
@@ -200,19 +203,13 @@ export default function TutorCertificationsScreen() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      // Re-confirm with backend that certifications were recorded before navigating.
-      const result = await get<{ hasCertificaciones?: boolean }>(API_ENDPOINTS.tutorMe);
-      if (result.data?.hasCertificaciones) {
-        router.replace('/(tutor)/dashboard' as any);
-      } else {
-        router.replace('/(auth)/solicitud-enviada' as any);
-      }
+      router.push('/(auth)/tutor-primer-curso' as any);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleSkip = () => router.replace('/(auth)/solicitud-enviada' as any);
+  const handleSkip = () => router.push('/(auth)/tutor-primer-curso' as any);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -228,15 +225,13 @@ export default function TutorCertificationsScreen() {
         <View style={{ width: 32 }} />
       </View>
 
-      {/* Step dots */}
+      {/* Step dots — step 3 of 4 is active */}
       <View className="flex-row justify-center gap-2 mb-2">
         {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
           <View
             key={i}
-            className={`h-2 rounded-full ${
-              i + 1 === TOTAL_STEPS ? 'bg-primary' : 'bg-border'
-            }`}
-            style={{ width: i + 1 === TOTAL_STEPS ? 28 : 8 }}
+            className={`h-2 rounded-full ${i + 1 < TOTAL_STEPS ? 'bg-primary' : 'bg-border'}`}
+            style={{ width: i + 1 === TOTAL_STEPS - 1 ? 28 : 8 }}
           />
         ))}
       </View>
@@ -250,7 +245,7 @@ export default function TutorCertificationsScreen() {
         <View className="px-5 mt-4 mb-6">
           <Text className="text-3xl font-extrabold text-text-primary mb-2">Certificaciones</Text>
           <Text className="text-sm text-text-muted leading-5">
-            Paso 3 de 3: Sube tus diplomas o certificados para verificar tu perfil.
+            Paso 3 de 4: Sube tus diplomas o certificados para verificar tu perfil.
           </Text>
         </View>
 

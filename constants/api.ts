@@ -41,6 +41,9 @@ export const API_ENDPOINTS = {
   tutorMe: `${API_BASE_URL}/tutors/me`,
   tutorCourses: `${API_BASE_URL}/tutors/me/courses`,
   tutorCourse: (courseId: string) => `${API_BASE_URL}/tutors/me/courses/${courseId}`,
+  certificationUploadUrl: (mimeType: string, fileName: string) =>
+    `${API_BASE_URL}/tutors/me/certifications/upload-url?mimeType=${encodeURIComponent(mimeType)}&fileName=${encodeURIComponent(fileName)}`,
+  certificationConfirm: `${API_BASE_URL}/tutors/me/certifications/confirm`,
   uploadCertification: (tutorId: string) =>
     `${API_BASE_URL}/tutors/${tutorId}/certificaciones`,
   deleteCertification: (tutorId: string, certificationId: string) =>
@@ -51,8 +54,20 @@ export const API_ENDPOINTS = {
   tutorBookings: `${API_BASE_URL}/bookings/tutor`,
   bookingStatus: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/status`,
   cancelBooking: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/cancel`,
+  rescheduleBooking: (bookingId: string) =>
+    `${API_BASE_URL}/bookings/${bookingId}/reschedule`,
+  // Search endpoints
+  searchCourses: (q: string, limit = 10) =>
+    `${API_BASE_URL}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+  searchRecommendations: (limit = 10) =>
+    `${API_BASE_URL}/search/recommendations?limit=${limit}`,
   // Messaging endpoints
   messagingChannels: `${API_BASE_URL}/messaging/channels`,
   messagingMessages: (channelId: number) =>
     `${API_BASE_URL}/messaging/channels/${channelId}/messages`,
+  // Review endpoints
+  reviews: `${API_BASE_URL}/reviews`,
+  myReviews: `${API_BASE_URL}/reviews/me`,
+  reviewByBooking: (bookingId: string) =>
+    `${API_BASE_URL}/reviews/booking/${bookingId}`,
 };
