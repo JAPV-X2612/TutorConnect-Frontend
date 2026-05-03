@@ -54,6 +54,8 @@ export const API_ENDPOINTS = {
   tutorBookings: `${API_BASE_URL}/bookings/tutor`,
   bookingStatus: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/status`,
   cancelBooking: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/cancel`,
+  rescheduleBooking: (bookingId: string) =>
+    `${API_BASE_URL}/bookings/${bookingId}/reschedule`,
   // Search endpoints
   searchCourses: (q: string, limit = 10) =>
     `${API_BASE_URL}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
