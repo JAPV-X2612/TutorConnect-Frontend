@@ -440,22 +440,7 @@ function ChatView({ channel, onBack, isTutor }: { channel: Channel; onBack: () =
                       CONFIRMADA
                     </Text>
                   </View>
-                  {!isTutor && (
-                    <TouchableOpacity
-                      onPress={() => router.push(`/(learner)/booking/${channel.course!.id}` as any)}
-                      accessibilityLabel="Reagendar sesión"
-                      style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 4,
-                        backgroundColor: '#CCFBF1',
-                        borderRadius: 20,
-                      }}
-                    >
-                      <Text style={{ color: '#0D9488', fontSize: 11, fontWeight: '700' }}>
-                        Reagendar
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  {/* Reagendar disabled — pending tutor-availability validation */}
                 </View>
               </View>
             )}

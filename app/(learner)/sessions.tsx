@@ -2,18 +2,34 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useBookingSocket } from '@/hooks/use-booking-socket';
 import { RateSessionModal } from '@/components/features/review/RateSessionModal';
-import { SessionCard, EmptyState, BookingItem, BookingStatus, toLocalDateString } from '@/components/features/sessions/SessionCard';
+import {
+  BookingItem,
+  BookingStatus,
+  EmptyState,
+  SessionCard,
+  toLocalDateString,
+} from '@/components/features/sessions/SessionCard';
 import { SessionCalendar } from '@/components/features/sessions/SessionCalendar';
-import { RescheduleModal } from '@/components/features/sessions/RescheduleModal';
 
 /**
  * Learner sessions screen — list and calendar views for all bookings.
+ *
+ * Reschedule feature is temporarily disabled pending proper tutor-availability
+ * validation and a two-step confirmation flow. The RescheduleModal component
+ * and backend endpoint are ready for future activation.
  *
  * @author Camilo Quintero, Jesús Pinzón, Laura Rodríguez, Santiago Díaz, Sergio Bejarano
  * @version 2.0
@@ -41,7 +57,6 @@ export default function LearnerSessionsScreen() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [ratingBookingId, setRatingBookingId] = useState<string | null>(null);
   const [ratedBookingIds, setRatedBookingIds] = useState<Set<string>>(new Set());
-  const [reschedulingBookingId, setReschedulingBookingId] = useState<string | null>(null);
 
   const loadBookings = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -64,20 +79,27 @@ export default function LearnerSessionsScreen() {
 
   useFocusEffect(useCallback(() => { loadBookings(); }, [loadBookings]));
 
-  useBookingSocket(useCallback((updated) => {
-    setBookings((prev) => {
-      const exists = prev.some((b) => b.id === updated.id);
-      if (exists) return prev.map((b) => (b.id === updated.id ? { ...b, ...updated } as BookingItem : b));
-      return [updated as unknown as BookingItem, ...prev];
-    });
-  }, []));
+  useBookingSocket(
+    useCallback((updated) => {
+      setBookings((prev) => {
+        const exists = prev.some((b) => b.id === updated.id);
+        if (exists)
+          return prev.map((b) =>
+            b.id === updated.id ? ({ ...b, ...updated } as BookingItem) : b,
+          );
+        return [updated as unknown as BookingItem, ...prev];
+      });
+    }, []),
+  );
 
   const handleCancel = async (id: string) => {
     setCancelling(id);
     const res = await api.patch<BookingItem>(API_ENDPOINTS.cancelBooking(id));
     setCancelling(null);
     if (res.data) {
-      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: res.data!.status } : b)));
+      setBookings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status: res.data!.status } : b)),
+      );
     }
   };
 
@@ -89,36 +111,28 @@ export default function LearnerSessionsScreen() {
     if (!res.error) router.push('/(learner)/mensajes' as any);
   };
 
-  const handleReschedule = async (newStartTime: string) => {
-    if (!reschedulingBookingId) return;
-    const res = await api.patch<BookingItem>(
-      API_ENDPOINTS.rescheduleBooking(reschedulingBookingId),
-      { newStartTime },
-    );
-    if (res.data) {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === reschedulingBookingId ? { ...b, ...res.data } : b)),
-      );
-    }
-    setReschedulingBookingId(null);
-  };
-
   const pendingCount = bookings.filter((b) => b.status === 'pending').length;
   const confirmedCount = bookings.filter((b) => b.status === 'confirmed').length;
-  const historyCount = bookings.filter((b) => b.status === 'completed' || b.status === 'cancelled').length;
+  const historyCount = bookings.filter(
+    (b) => b.status === 'completed' || b.status === 'cancelled',
+  ).length;
 
-  const listFiltered = useMemo(() => bookings.filter((b) => {
-    if (activeTab === 'completed') return b.status === 'completed' || b.status === 'cancelled';
-    return b.status === activeTab;
-  }), [bookings, activeTab]);
+  const listFiltered = useMemo(
+    () =>
+      bookings.filter((b) => {
+        if (activeTab === 'completed')
+          return b.status === 'completed' || b.status === 'cancelled';
+        return b.status === activeTab;
+      }),
+    [bookings, activeTab],
+  );
 
-  const calendarFiltered = useMemo(() =>
-    selectedDate ? bookings.filter((b) => toLocalDateString(b.startTime) === selectedDate) : bookings,
-  [bookings, selectedDate]);
-
-  const reschedulingBooking = useMemo(
-    () => bookings.find((b) => b.id === reschedulingBookingId) ?? null,
-    [bookings, reschedulingBookingId],
+  const calendarFiltered = useMemo(
+    () =>
+      selectedDate
+        ? bookings.filter((b) => toLocalDateString(b.startTime) === selectedDate)
+        : bookings,
+    [bookings, selectedDate],
   );
 
   const ratingTutorName = useMemo(() => {
@@ -130,13 +144,12 @@ export default function LearnerSessionsScreen() {
     <SessionCard
       item={item}
       onCancel={cancelling === item.id ? undefined : () => handleCancel(item.id)}
-      onChat={item.tutor?.clerkId ? () => handleChat(item.tutor!.clerkId, item.course?.id) : undefined}
-      onRate={item.status === 'completed' ? () => setRatingBookingId(item.id) : undefined}
-      onReschedule={
-        item.status === 'pending' || item.status === 'confirmed'
-          ? () => setReschedulingBookingId(item.id)
+      onChat={
+        item.tutor?.clerkId
+          ? () => handleChat(item.tutor!.clerkId, item.course?.id)
           : undefined
       }
+      onRate={item.status === 'completed' ? () => setRatingBookingId(item.id) : undefined}
       isRated={ratedBookingIds.has(item.id)}
     />
   );
@@ -149,9 +162,13 @@ export default function LearnerSessionsScreen() {
           <Text className="text-2xl font-bold text-text-primary">Mis sesiones</Text>
           {(pendingCount > 0 || confirmedCount > 0) && (
             <Text className="text-text-muted text-sm mt-0.5">
-              {confirmedCount > 0 ? `${confirmedCount} confirmada${confirmedCount > 1 ? 's' : ''}` : ''}
+              {confirmedCount > 0
+                ? `${confirmedCount} confirmada${confirmedCount > 1 ? 's' : ''}`
+                : ''}
               {confirmedCount > 0 && pendingCount > 0 ? ' · ' : ''}
-              {pendingCount > 0 ? `${pendingCount} pendiente${pendingCount > 1 ? 's' : ''}` : ''}
+              {pendingCount > 0
+                ? `${pendingCount} pendiente${pendingCount > 1 ? 's' : ''}`
+                : ''}
             </Text>
           )}
         </View>
@@ -180,9 +197,11 @@ export default function LearnerSessionsScreen() {
           <View className="flex-row px-6 mb-4 gap-2">
             {TABS.map((tab) => {
               const count =
-                tab.key === 'completed' ? historyCount
-                : tab.key === 'confirmed' ? confirmedCount
-                : pendingCount;
+                tab.key === 'completed'
+                  ? historyCount
+                  : tab.key === 'confirmed'
+                    ? confirmedCount
+                    : pendingCount;
               const active = activeTab === tab.key;
               return (
                 <TouchableOpacity
@@ -192,8 +211,10 @@ export default function LearnerSessionsScreen() {
                   className={`flex-1 py-2 rounded-full items-center border ${
                     active ? 'bg-primary border-primary' : 'bg-white border-border'
                   }`}>
-                  <Text className={`text-xs font-semibold ${active ? 'text-white' : 'text-text-muted'}`}>
-                    {tab.label}{count > 0 ? ` (${count})` : ''}
+                  <Text
+                    className={`text-xs font-semibold ${active ? 'text-white' : 'text-text-muted'}`}>
+                    {tab.label}
+                    {count > 0 ? ` (${count})` : ''}
                   </Text>
                 </TouchableOpacity>
               );
@@ -203,11 +224,17 @@ export default function LearnerSessionsScreen() {
             data={listFiltered}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24, flexGrow: 1 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#006A75" />}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#006A75"
+              />
+            }
             renderItem={renderCard}
             ListEmptyComponent={<EmptyState tab={activeTab} />}
             ListFooterComponent={
-              bookings.length === 0 ? (
+              bookings.length === 0 && !loading ? (
                 <TouchableOpacity
                   onPress={() => router.replace('/(learner)/dashboard' as any)}
                   className="mt-4 bg-primary rounded-full py-3 items-center">
@@ -231,7 +258,9 @@ export default function LearnerSessionsScreen() {
             <Text className="px-6 pb-2 text-text-muted text-xs">
               {calendarFiltered.length} sesión{calendarFiltered.length !== 1 ? 'es' : ''} el{' '}
               {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-CO', {
-                weekday: 'long', day: 'numeric', month: 'long',
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
               })}
             </Text>
           )}
@@ -239,13 +268,21 @@ export default function LearnerSessionsScreen() {
             data={calendarFiltered}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24, flexGrow: 1 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#006A75" />}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#006A75"
+              />
+            }
             renderItem={renderCard}
             ListEmptyComponent={
               <View className="flex-1 items-center justify-center pt-12">
                 <Ionicons name="calendar-outline" size={48} color="#CBD5E1" />
                 <Text className="text-text-primary font-semibold text-base mt-4">
-                  {selectedDate ? 'Sin sesiones este día' : 'Toca un día para ver tus sesiones'}
+                  {selectedDate
+                    ? 'Sin sesiones este día'
+                    : 'Toca un día para ver tus sesiones'}
                 </Text>
               </View>
             }
@@ -259,15 +296,9 @@ export default function LearnerSessionsScreen() {
         tutorName={ratingTutorName}
         onClose={() => setRatingBookingId(null)}
         onSubmitted={() => {
-          if (ratingBookingId) setRatedBookingIds((prev) => new Set(prev).add(ratingBookingId));
+          if (ratingBookingId)
+            setRatedBookingIds((prev) => new Set(prev).add(ratingBookingId));
         }}
-      />
-
-      <RescheduleModal
-        visible={reschedulingBookingId !== null}
-        booking={reschedulingBooking}
-        onClose={() => setReschedulingBookingId(null)}
-        onConfirm={handleReschedule}
       />
     </SafeAreaView>
   );

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator, FlatList, ScrollView, Text, TouchableOpacity, View,
 } from 'react-native';
@@ -87,18 +88,29 @@ export default function BookingScreen() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!courseId) return;
-    api.get<CourseDetail>(API_ENDPOINTS.courseDetail(courseId)).then((res) => {
-      if (res.error || !res.data) {
-        setError('No se pudo cargar el curso.');
-      } else {
-        setCourse(res.data);
-        setDateOptions(buildDateOptions(res.data.schedule));
-      }
-      setLoading(false);
-    });
-  }, [courseId]);
+  // useFocusEffect instead of useEffect so state resets on every visit to this screen.
+  // Expo Router can reuse the component instance for the same courseId, which would
+  // preserve `done = true` from a previous booking and skip the date picker entirely.
+  useFocusEffect(
+    useCallback(() => {
+      setDone(false);
+      setSelected(null);
+      setError(null);
+      setSubmitting(false);
+
+      if (!courseId) return;
+      setLoading(true);
+      api.get<CourseDetail>(API_ENDPOINTS.courseDetail(courseId)).then((res) => {
+        if (res.error || !res.data) {
+          setError('No se pudo cargar el curso.');
+        } else {
+          setCourse(res.data);
+          setDateOptions(buildDateOptions(res.data.schedule));
+        }
+        setLoading(false);
+      });
+    }, [courseId]),
+  );
 
   const handleConfirm = async () => {
     if (!selected || !courseId) return;

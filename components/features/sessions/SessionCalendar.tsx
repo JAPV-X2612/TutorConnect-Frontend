@@ -1,6 +1,12 @@
 import { useMemo } from 'react';
 import { Calendar } from 'react-native-calendars';
-import { BookingItem, BookingStatus, toLocalDateString } from './SessionCard';
+import { BookingStatus, toLocalDateString } from './SessionCard';
+
+/** Minimum shape required by SessionCalendar — works for both learner and tutor bookings. */
+export interface CalendarBooking {
+  startTime: string;
+  status: BookingStatus;
+}
 
 /**
  * Monthly calendar that marks days containing sessions with colored dots.
@@ -19,11 +25,11 @@ interface Dot {
   color: string;
 }
 
-const STATUS_DOTS: Partial<Record<BookingStatus, Dot>> = {
-  pending: { key: 'pending', color: '#d97706' },
-  confirmed: { key: 'confirmed', color: '#16a34a' },
-  completed: { key: 'history', color: '#64748b' },
-  cancelled: { key: 'history', color: '#64748b' },
+const STATUS_DOTS: Record<BookingStatus, Dot> = {
+  pending:   { key: 'pending',   color: '#d97706' }, // amber  — needs attention
+  confirmed: { key: 'confirmed', color: '#16a34a' }, // green  — upcoming confirmed
+  completed: { key: 'completed', color: '#2563eb' }, // blue   — historical success
+  cancelled: { key: 'cancelled', color: '#dc2626' }, // red    — cancelled or rejected
 };
 
 interface MarkedDay {
@@ -33,7 +39,7 @@ interface MarkedDay {
 }
 
 interface SessionCalendarProps {
-  bookings: BookingItem[];
+  bookings: CalendarBooking[];
   selectedDate: string | null;
   onDayPress: (dateString: string) => void;
 }
