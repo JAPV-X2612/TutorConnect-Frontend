@@ -3,13 +3,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator, KeyboardAvoidingView, Modal, Platform,
-  ScrollView, Text, TextInput, TouchableOpacity, View,
+  ScrollView, Switch, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLogout } from '@/hooks/use-logout';
 import { useProfile } from '@/hooks/use-profile';
 import { useTutorProfile, UpdateTutorPayload } from '@/hooks/use-tutor-profile';
+import { useApiRequest } from '@/services/api';
+import { API_ENDPOINTS } from '@/constants/api';
 import { SelectInput } from '@/components/ui/select-input';
 import { CITIES, COURSE_CATEGORIES } from '@/constants/registration-options';
 import { CategoryIcon, StudentTypeIcon } from '@/constants/category-icons';
@@ -68,6 +70,35 @@ function LogoutButton({ onPress, loading }: { onPress: () => void; loading: bool
         </Text>
         <Ionicons name="chevron-forward" size={18} color="#DC2626" />
       </TouchableOpacity>
+    </View>
+  );
+}
+
+function NotificationsToggle() {
+  const api = useApiRequest();
+  const [enabled, setEnabled] = useState(true);
+
+  const toggle = async (value: boolean) => {
+    setEnabled(value);
+    await api.patch(API_ENDPOINTS.updateNotificationPreference, {
+      enabled: value,
+    });
+  };
+
+  return (
+    <View className="mx-6 mt-4 bg-white rounded-2xl border border-border overflow-hidden">
+      <View className="flex-row items-center px-5 py-4 gap-3">
+        <Ionicons name="notifications-outline" size={22} color="#006A75" />
+        <Text className="text-text-primary text-base font-medium flex-1">
+          Notificaciones push
+        </Text>
+        <Switch
+          value={enabled}
+          onValueChange={toggle}
+          trackColor={{ false: '#CBD5E1', true: '#006A75' }}
+          thumbColor="#ffffff"
+        />
+      </View>
     </View>
   );
 }
@@ -488,6 +519,7 @@ export function LearnerProfileScreen() {
             </View>
           )}
 
+          <NotificationsToggle />
           <LogoutButton onPress={() => setConfirmVisible(true)} loading={loggingOut} />
         </ScrollView>
 
@@ -769,6 +801,7 @@ export function TutorProfileScreen() {
             )}
           </View>
 
+          <NotificationsToggle />
           <LogoutButton onPress={() => setConfirmVisible(true)} loading={loggingOut} />
         </ScrollView>
 

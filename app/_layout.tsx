@@ -5,6 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import '../global.css';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 
 const tokenCache = {
   async getToken(key: string) {
@@ -21,6 +22,16 @@ export const unstable_settings = {
   anchor: 'onboarding',
 };
 
+/**
+ * Inner component rendered inside <ClerkLoaded> so that usePushNotifications
+ * can call useApiRequest → useAuth without violating the ClerkProvider boundary.
+ */
+function PushNotificationSetup() {
+  const router = useRouter();
+  usePushNotifications({ router });
+  return null;
+}
+
 export default function RootLayout() {
   const router = useRouter();
 
@@ -31,6 +42,7 @@ export default function RootLayout() {
       {...({ navigate: (to: string) => router.push(to as any) } as any)}
     >
       <ClerkLoaded>
+        <PushNotificationSetup />
         <ThemeProvider value={DefaultTheme}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -38,8 +50,14 @@ export default function RootLayout() {
             <Stack.Screen name="(learner)" options={{ headerShown: false }} />
             <Stack.Screen name="(tutor)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="oauth-native-callback" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen
+              name="oauth-native-callback"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="modal"
+              options={{ presentation: 'modal', title: 'Modal' }}
+            />
           </Stack>
           <StatusBar style="light" />
         </ThemeProvider>

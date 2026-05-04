@@ -56,6 +56,9 @@ export const API_ENDPOINTS = {
   cancelBooking: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/cancel`,
   rescheduleBooking: (bookingId: string) =>
     `${API_BASE_URL}/bookings/${bookingId}/reschedule`,
+  // Push notification endpoints
+  registerFcmToken: `${API_BASE_URL}/users/me/fcm-token`,
+  updateNotificationPreference: `${API_BASE_URL}/users/me/notifications`,
   // Search endpoints
   searchCourses: (q: string, limit = 10) =>
     `${API_BASE_URL}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
