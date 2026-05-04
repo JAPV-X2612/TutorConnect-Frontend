@@ -22,13 +22,18 @@ export const unstable_settings = {
   anchor: 'onboarding',
 };
 
+/**
+ * Inner component rendered inside <ClerkLoaded> so that usePushNotifications
+ * can call useApiRequest → useAuth without violating the ClerkProvider boundary.
+ */
+function PushNotificationSetup() {
+  const router = useRouter();
+  usePushNotifications({ router });
+  return null;
+}
+
 export default function RootLayout() {
   const router = useRouter();
-
-  // Registers the FCM device token with the backend on every launch.
-  // All expo-notifications calls use dynamic import inside the hook so the
-  // module is never loaded at import-time in Expo Go SDK 53+, where it throws.
-  usePushNotifications({ router });
 
   return (
     <ClerkProvider
@@ -37,6 +42,7 @@ export default function RootLayout() {
       {...({ navigate: (to: string) => router.push(to as any) } as any)}
     >
       <ClerkLoaded>
+        <PushNotificationSetup />
         <ThemeProvider value={DefaultTheme}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
