@@ -9,15 +9,6 @@ import 'react-native-reanimated';
 import '../global.css';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 
-// Suppress all foreground push notifications — WebSocket handles in-app updates.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: false,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
-
 const tokenCache = {
   async getToken(key: string) {
     return SecureStore.getItemAsync(key);
@@ -36,10 +27,29 @@ export const unstable_settings = {
 export default function RootLayout() {
   const router = useRouter();
 
-  // Register device token on every launch.
+  // Register FCM device token on every launch.
+  // No-ops on Expo Go and emulators — requires a development build on a physical device.
   usePushNotifications();
 
-  // Deep-link when user taps a notification while app is in background/killed.
+  // Configure foreground notification behavior inside useEffect so that failures
+  // in Expo Go (SDK 53+ removed remote push) don't crash the module at load time.
+  useEffect(() => {
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: false,
+          shouldShowBanner: false,
+          shouldShowList: false,
+          shouldPlaySound: false,
+          shouldSetBadge: false,
+        }),
+      });
+    } catch {
+      // expo-notifications remote push not available in Expo Go SDK 53+ — ignored.
+    }
+  }, []);
+
+  // Deep-link when user taps a background/killed notification.
   const lastResponse = Notifications.useLastNotificationResponse();
   useEffect(() => {
     if (!lastResponse) return;
@@ -68,8 +78,14 @@ export default function RootLayout() {
             <Stack.Screen name="(learner)" options={{ headerShown: false }} />
             <Stack.Screen name="(tutor)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="oauth-native-callback" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen
+              name="oauth-native-callback"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="modal"
+              options={{ presentation: 'modal', title: 'Modal' }}
+            />
           </Stack>
           <StatusBar style="light" />
         </ThemeProvider>
