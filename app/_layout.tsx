@@ -1,10 +1,8 @@
 import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import * as Notifications from 'expo-notifications';
 import { Stack, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
 import 'react-native-reanimated';
 import '../global.css';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
@@ -27,42 +25,10 @@ export const unstable_settings = {
 export default function RootLayout() {
   const router = useRouter();
 
-  // Register FCM device token on every launch.
-  // No-ops on Expo Go and emulators — requires a development build on a physical device.
-  usePushNotifications();
-
-  // Configure foreground notification behavior inside useEffect so that failures
-  // in Expo Go (SDK 53+ removed remote push) don't crash the module at load time.
-  useEffect(() => {
-    try {
-      Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: false,
-          shouldShowBanner: false,
-          shouldShowList: false,
-          shouldPlaySound: false,
-          shouldSetBadge: false,
-        }),
-      });
-    } catch {
-      // expo-notifications remote push not available in Expo Go SDK 53+ — ignored.
-    }
-  }, []);
-
-  // Deep-link when user taps a background/killed notification.
-  const lastResponse = Notifications.useLastNotificationResponse();
-  useEffect(() => {
-    if (!lastResponse) return;
-    const data = lastResponse.notification.request.content.data as {
-      type?: string;
-      channelId?: string;
-    };
-    if (data.type === 'message' && data.channelId) {
-      router.push('/(learner)/mensajes' as any);
-    } else if (data.type === 'booking') {
-      router.push('/(learner)/sessions' as any);
-    }
-  }, [lastResponse, router]);
+  // Registers the FCM device token with the backend on every launch.
+  // All expo-notifications calls use dynamic import inside the hook so the
+  // module is never loaded at import-time in Expo Go SDK 53+, where it throws.
+  usePushNotifications({ router });
 
   return (
     <ClerkProvider
