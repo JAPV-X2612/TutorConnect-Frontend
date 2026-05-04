@@ -1,10 +1,22 @@
 import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
 import { Stack, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 import '../global.css';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
+
+// Suppress all foreground push notifications — WebSocket handles in-app updates.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: false,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 const tokenCache = {
   async getToken(key: string) {
@@ -23,6 +35,24 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const router = useRouter();
+
+  // Register device token on every launch.
+  usePushNotifications();
+
+  // Deep-link when user taps a notification while app is in background/killed.
+  const lastResponse = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    if (!lastResponse) return;
+    const data = lastResponse.notification.request.content.data as {
+      type?: string;
+      channelId?: string;
+    };
+    if (data.type === 'message' && data.channelId) {
+      router.push('/(learner)/mensajes' as any);
+    } else if (data.type === 'booking') {
+      router.push('/(learner)/sessions' as any);
+    }
+  }, [lastResponse, router]);
 
   return (
     <ClerkProvider
