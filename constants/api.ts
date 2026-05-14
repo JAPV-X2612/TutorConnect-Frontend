@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
 const getApiBaseUrl = () => {
-  const configuredUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const configuredUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 
   if (Platform.OS === 'web') {
     return configuredUrl.replace('10.0.2.2', 'localhost');
@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
   // User endpoints
   usersCreate: `${API_BASE_URL}/users`,
   usersMe: `${API_BASE_URL}/users/me`,
+  usersMeUpdate: `${API_BASE_URL}/users/me`,
   // Auth endpoints
   authMe: `${API_BASE_URL}/auth/me`,
   authLogout: `${API_BASE_URL}/auth/logout`,
@@ -31,10 +32,57 @@ export const API_ENDPOINTS = {
     subject
       ? `${API_BASE_URL}/tutors?subject=${encodeURIComponent(subject)}`
       : `${API_BASE_URL}/tutors`,
-  tutorMe: `${API_BASE_URL}/tutors/me`,
+  courseListings: (subject?: string) =>
+    subject
+      ? `${API_BASE_URL}/tutors/courses?subject=${encodeURIComponent(subject)}`
+      : `${API_BASE_URL}/tutors/courses`,
+  courseDetail: (courseId: string) => `${API_BASE_URL}/tutors/courses/${courseId}`,
   tutorRegister: `${API_BASE_URL}/tutors/register`,
+  tutorMe: `${API_BASE_URL}/tutors/me`,
+  tutorCourses: `${API_BASE_URL}/tutors/me/courses`,
+  tutorCourse: (courseId: string) => `${API_BASE_URL}/tutors/me/courses/${courseId}`,
+  certificationUploadUrl: (mimeType: string, fileName: string) =>
+    `${API_BASE_URL}/tutors/me/certifications/upload-url?mimeType=${encodeURIComponent(mimeType)}&fileName=${encodeURIComponent(fileName)}`,
+  certificationConfirm: `${API_BASE_URL}/tutors/me/certifications/confirm`,
   uploadCertification: (tutorId: string) =>
     `${API_BASE_URL}/tutors/${tutorId}/certificaciones`,
-  deleteCertification: (certificationId: string) =>
-    `${API_BASE_URL}/tutors/certifications/${certificationId}`,
+  deleteCertification: (tutorId: string, certificationId: string) =>
+    `${API_BASE_URL}/tutors/${tutorId}/certificaciones/${certificationId}`,
+  // Booking endpoints
+  bookings: `${API_BASE_URL}/bookings`,
+  myBookings: `${API_BASE_URL}/bookings/me`,
+  tutorBookings: `${API_BASE_URL}/bookings/tutor`,
+  bookingStatus: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/status`,
+  cancelBooking: (bookingId: string) => `${API_BASE_URL}/bookings/${bookingId}/cancel`,
+  rescheduleBooking: (bookingId: string) =>
+    `${API_BASE_URL}/bookings/${bookingId}/reschedule`,
+  // Push notification endpoints
+  registerFcmToken: `${API_BASE_URL}/users/me/fcm-token`,
+  updateNotificationPreference: `${API_BASE_URL}/users/me/notifications`,
+  // Search endpoints
+  searchCourses: (q: string, limit = 10) =>
+    `${API_BASE_URL}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+  searchRecommendations: (limit = 10) =>
+    `${API_BASE_URL}/search/recommendations?limit=${limit}`,
+  // Messaging endpoints
+  messagingChannels: `${API_BASE_URL}/messaging/channels`,
+  messagingMessages: (channelId: number) =>
+    `${API_BASE_URL}/messaging/channels/${channelId}/messages`,
+  // Review endpoints
+  reviews: `${API_BASE_URL}/reviews`,
+  myReviews: `${API_BASE_URL}/reviews/me`,
+  tutorReviewsSummary: `${API_BASE_URL}/reviews/tutor/summary`,
+  reviewByBooking: (bookingId: string) =>
+    `${API_BASE_URL}/reviews/booking/${bookingId}`,
+  // Payment endpoints
+  paymentSummary: (bookingId: string) =>
+    `${API_BASE_URL}/payments/bookings/${bookingId}/summary`,
+  processPayment: (bookingId: string) =>
+    `${API_BASE_URL}/payments/bookings/${bookingId}/pay`,
+  tutorPaymentHistory: (from?: string, to?: string) => {
+    const parts: string[] = [];
+    if (from) parts.push(`from=${encodeURIComponent(from)}`);
+    if (to) parts.push(`to=${encodeURIComponent(to)}`);
+    return `${API_BASE_URL}/payments/tutor/history${parts.length ? `?${parts.join('&')}` : ''}`;
+  },
 };

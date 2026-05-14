@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth, useOAuth } from '@clerk/clerk-expo';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
@@ -30,7 +31,8 @@ export default function LoginScreen() {
     setBannerError(null);
     setLoading(true);
     try {
-      const { createdSessionId, setActive } = await startOAuthFlow();
+      const redirectUrl = Linking.createURL('/oauth-native-callback');
+      const { createdSessionId, setActive } = await startOAuthFlow({ redirectUrl });
 
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });

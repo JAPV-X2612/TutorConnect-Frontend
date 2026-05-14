@@ -1,50 +1,78 @@
 import { useAuth } from '@clerk/clerk-expo';
-import { Redirect } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { homeRouteForRole, ROUTES } from '@/constants/routes';
 import { useProfile } from '@/hooks/use-profile';
 
 /**
  * Root entry redirector.
  *
- * Decision tree:
- * - Clerk not loaded → spinner
- * - Not signed in → `/onboarding`
- * - Signed in, profile loading → spinner
- * - Signed in, no backend profile → `/onboarding` (start role-specific flow)
- * - Signed in, profile resolved → role-specific home
+ * Two fixes applied here:
  *
- * All post-authentication flows (login, OAuth callback, email verification,
- * learner sign-up) redirect here so that role-based routing lives in a
- * single place.
+ * 1. Navigation is imperative (not <Redirect>) guarded by `useIsFocused` so it
+ *    only fires when this screen is the active route. Using <Redirect> would
+ *    fire even when mounted in the background stack, which caused a race
+ *    condition during tutor OAuth: index.tsx saw role=LEARNER (webhook default)
+ *    and redirected before tutor-detalles.tsx could call POST /tutors/register.
+ *
+ * 2. Profile is refetched on every focus event so that role changes made by
+ *    POST /tutors/register are reflected immediately instead of using stale
+ *    cached data from before the registration completed.
  *
  * @author TutorConnect Team
  */
 export default function Index() {
+  const router = useRouter();
+  const isFocused = useIsFocused();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
-  const { profile, loading: profileLoading, error: profileError } = useProfile();
+  const { profile, loading: profileLoading, error: profileError, refetch } = useProfile();
 
-  if (!authLoaded || (isSignedIn && profileLoading)) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" color="#006A75" />
-      </View>
-    );
-  }
+  // Refetch profile every time this screen gains focus so role updates from
+  // registration flows are picked up before we decide where to redirect.
+  useEffect(() => {
+    if (isFocused && authLoaded && isSignedIn) {
+      refetch();
+    }
+    // Only re-run when focus state changes — not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFocused]);
 
-  if (!isSignedIn) {
-    return <Redirect href={ROUTES.ONBOARDING} />;
-  }
+  // Redirect once we have a stable, focused state.
+  useEffect(() => {
+    if (!isFocused) return;
+    if (!authLoaded || (isSignedIn && profileLoading)) return;
 
-  if (profileError || !profile) {
-    return <Redirect href={ROUTES.ONBOARDING} />;
-  }
+    if (!isSignedIn) {
+      router.replace(ROUTES.ONBOARDING);
+      return;
+    }
 
-  // Defensive: if the backend omits the role field, send the user back to
-  // onboarding to complete the proper role-specific registration flow.
-  if (!profile.role) {
-    return <Redirect href={ROUTES.ONBOARDING} />;
-  }
+    if (profileError || !profile || !profile.role) {
+      // Temporarily show error instead of redirecting — for debugging
+      return;
+    }
 
-  return <Redirect href={homeRouteForRole(profile.role)} />;
+    // New learners who haven't completed profile setup (studentType is null)
+    // are sent to profile-setup regardless of how they authenticated.
+    if (profile.role === 'LEARNER' && !profile.studentType) {
+      router.replace('/(auth)/profile-setup' as any);
+      return;
+    }
+
+    router.replace(homeRouteForRole(profile.role) as any);
+  }, [isFocused, authLoaded, isSignedIn, profileLoading, profileError, profile, router]);
+
+  return (
+    <View className="flex-1 items-center justify-center bg-background px-6">
+      <ActivityIndicator size="large" color="#006A75" />
+      {profileError && (
+        <Text className="text-red-500 text-sm text-center mt-4">{profileError}</Text>
+      )}
+      {!profileLoading && isSignedIn && !profile && !profileError && (
+        <Text className="text-gray-500 text-xs text-center mt-2">Cargando perfil...</Text>
+      )}
+    </View>
+  );
 }

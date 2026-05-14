@@ -10,8 +10,12 @@ export function useLogout() {
   const logout = async () => {
     setLoading(true);
     try {
-      await signOut();
+      // Navigate first so the tab tree is unmounted before Clerk clears its
+      // state. Calling signOut() first causes user → null mid-render, which
+      // makes the tab layout switch structures and triggers an addViewAt crash
+      // in Fabric on Android.
       router.replace('/onboarding');
+      await signOut();
     } finally {
       setLoading(false);
     }

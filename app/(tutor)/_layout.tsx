@@ -1,40 +1,27 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { RoleGuard } from '@/components/layout/role-guard';
 
-/**
- * Tab layout for the TUTOR role area.
- *
- * Wraps the three tutor-facing screens (dashboard, sessions, profile) in a
- * {@link RoleGuard} so that a learner reaching any of these routes is
- * redirected to their own home.
- *
- * @author TutorConnect Team
- */
+const ACTIVE = '#006A75';
+const INACTIVE = '#94A3B8';
+
+const TAB_OPTIONS = {
+  tabBarActiveTintColor: ACTIVE,
+  tabBarInactiveTintColor: INACTIVE,
+  headerShown: false,
+  tabBarStyle: { borderTopColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
+};
+
 export default function TutorTabsLayout() {
   return (
     <RoleGuard expected="TUTOR">
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: '#006A75',
-          tabBarInactiveTintColor: '#64748B',
-          tabBarStyle: {
-            backgroundColor: '#FFFFFF',
-            borderTopColor: '#E2E8F0',
-          },
-          headerShown: false,
-          tabBarButton: HapticTab,
-        }}
-      >
+      <Tabs screenOptions={TAB_OPTIONS}>
         <Tabs.Screen
           name="dashboard"
           options={{
             title: 'Inicio',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="house.fill" color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
             ),
           }}
         />
@@ -42,8 +29,17 @@ export default function TutorTabsLayout() {
           name="sessions"
           options={{
             title: 'Sesiones',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="calendar" color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={24} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="mensajes"
+          options={{
+            title: 'Mensajes',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'chatbubble' : 'chatbubble-outline'} size={24} color={color} />
             ),
           }}
         />
@@ -51,11 +47,14 @@ export default function TutorTabsLayout() {
           name="profile"
           options={{
             title: 'Perfil',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="person.fill" color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
             ),
           }}
         />
+        <Tabs.Screen name="crear-curso" options={{ href: null }} />
+        <Tabs.Screen name="payment-history" options={{ href: null }} />
+        <Tabs.Screen name="reviews" options={{ href: null }} />
       </Tabs>
     </RoleGuard>
   );
