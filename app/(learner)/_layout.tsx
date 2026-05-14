@@ -55,6 +55,8 @@ export default function LearnerTabsLayout() {
         <Tabs.Screen name="search" options={{ href: null }} />
         <Tabs.Screen name="course/[courseId]" options={{ href: null }} />
         <Tabs.Screen name="booking/[courseId]" options={{ href: null }} />
+        <Tabs.Screen name="payment/[bookingId]" options={{ href: null }} />
+        <Tabs.Screen name="payment/success" options={{ href: null }} />
       </Tabs>
     </RoleGuard>
   );

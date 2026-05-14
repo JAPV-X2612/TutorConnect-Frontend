@@ -130,10 +130,10 @@ export default function TutorPrimerCursoScreen() {
       if (result.data?.hasCertificaciones) {
         router.replace('/(tutor)/dashboard' as any);
       } else {
-        router.replace('/(auth)/solicitud-enviada' as any);
+        router.replace('/(auth)/request-submitted' as any);
       }
     } catch {
-      router.replace('/(auth)/solicitud-enviada' as any);
+      router.replace('/(auth)/request-submitted' as any);
     }
   };
 

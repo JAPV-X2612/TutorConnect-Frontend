@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 
+
 const DAY_TO_JS: Record<string, number> = {
   SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3,
   THURSDAY: 4, FRIDAY: 5, SATURDAY: 6,
@@ -85,15 +86,10 @@ export default function BookingScreen() {
   const [dateOptions, setDateOptions] = useState<DateOption[]>([]);
   const [selected, setSelected] = useState<DateOption | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // useFocusEffect instead of useEffect so state resets on every visit to this screen.
-  // Expo Router can reuse the component instance for the same courseId, which would
-  // preserve `done = true` from a previous booking and skip the date picker entirely.
   useFocusEffect(
     useCallback(() => {
-      setDone(false);
       setSelected(null);
       setError(null);
       setSubmitting(false);
@@ -113,46 +109,36 @@ export default function BookingScreen() {
   );
 
   const handleConfirm = async () => {
-    if (!selected || !courseId) return;
+    if (!selected || !courseId || !course) return;
     setSubmitting(true);
     setError(null);
-    const res = await api.post(API_ENDPOINTS.bookings, {
+    const res = await api.post<{ id: string }>(API_ENDPOINTS.bookings, {
       courseId,
       scheduledAt: selected.iso,
     });
     setSubmitting(false);
-    if (res.error) {
+    if (res.error || !res.data?.id) {
       setError('No se pudo crear la reserva. Inténtalo de nuevo.');
-    } else {
-      setDone(true);
+      return;
     }
+    router.push({
+      pathname: '/(learner)/payment/[bookingId]' as any,
+      params: {
+        bookingId: res.data.id,
+        subject: course.subject,
+        tutorName: `${course.tutor.nombre} ${course.tutor.apellido}`,
+        price: String(course.price),
+        duration: String(course.duration),
+        scheduledAt: selected.iso,
+        timeRange: `${selected.slot.startTime} – ${selected.slot.endTime}`,
+      },
+    });
   };
 
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background items-center justify-center">
         <ActivityIndicator size="large" color="#006A75" />
-      </SafeAreaView>
-    );
-  }
-
-  if (done) {
-    return (
-      <SafeAreaView className="flex-1 bg-background items-center justify-center px-6">
-        <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-5">
-          <Ionicons name="checkmark-circle" size={40} color="#16a34a" />
-        </View>
-        <Text className="text-xl font-bold text-text-primary text-center mb-2">
-          ¡Solicitud enviada!
-        </Text>
-        <Text className="text-text-muted text-sm text-center leading-6 mb-8">
-          El tutor revisará tu solicitud y te confirmaremos la sesión pronto.
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.replace('/(learner)/dashboard' as any)}
-          className="bg-primary rounded-full px-8 py-3">
-          <Text className="text-white font-semibold">Volver al inicio</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -171,13 +157,11 @@ export default function BookingScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Nav */}
-      <View className="flex-row items-center px-4 py-3 border-b border-border gap-3">
+      <View className="flex-row items-center px-4 py-2 border-b border-border gap-2">
         <TouchableOpacity onPress={() => router.back()} className="p-1">
           <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
         </TouchableOpacity>
-        <Text className="text-base font-semibold text-text-primary flex-1" numberOfLines={1}>
-          Reservar sesión
-        </Text>
+        <Text className="text-base font-semibold text-text-primary flex-1">Reservar sesión</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>

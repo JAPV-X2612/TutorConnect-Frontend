@@ -71,6 +71,18 @@ export const API_ENDPOINTS = {
   // Review endpoints
   reviews: `${API_BASE_URL}/reviews`,
   myReviews: `${API_BASE_URL}/reviews/me`,
+  tutorReviewsSummary: `${API_BASE_URL}/reviews/tutor/summary`,
   reviewByBooking: (bookingId: string) =>
     `${API_BASE_URL}/reviews/booking/${bookingId}`,
+  // Payment endpoints
+  paymentSummary: (bookingId: string) =>
+    `${API_BASE_URL}/payments/bookings/${bookingId}/summary`,
+  processPayment: (bookingId: string) =>
+    `${API_BASE_URL}/payments/bookings/${bookingId}/pay`,
+  tutorPaymentHistory: (from?: string, to?: string) => {
+    const parts: string[] = [];
+    if (from) parts.push(`from=${encodeURIComponent(from)}`);
+    if (to) parts.push(`to=${encodeURIComponent(to)}`);
+    return `${API_BASE_URL}/payments/tutor/history${parts.length ? `?${parts.join('&')}` : ''}`;
+  },
 };

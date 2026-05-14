@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApiRequest } from '@/services/api';
 import { API_ENDPOINTS } from '@/constants/api';
 
+
 const AVATAR_COLORS = ['#006A75', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 function avatarColor(name: string) {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
@@ -125,7 +126,7 @@ export default function CourseDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Nav */}
-      <View className="flex-row items-center px-4 py-3 border-b border-border gap-3">
+      <View className="flex-row items-center px-4 py-2 border-b border-border gap-2">
         <TouchableOpacity onPress={() => router.back()} className="p-1">
           <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
         </TouchableOpacity>

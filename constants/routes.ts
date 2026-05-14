@@ -17,8 +17,7 @@ export const ROUTES = {
   AUTH_LOGIN: '/(auth)/login',
   AUTH_REGISTER: '/(auth)/register',
   AUTH_TUTOR_REGISTER: '/(auth)/tutor-register',
-  AUTH_TUTOR_CERTIFICATIONS: '/(auth)/tutor-certifications',
-  AUTH_SOLICITUD_ENVIADA: '/(auth)/solicitud-enviada',
+  AUTH_REQUEST_SUBMITTED: '/(auth)/request-submitted',
 
   // Learner area
   LEARNER_DASHBOARD: '/(learner)/dashboard',
@@ -29,6 +28,10 @@ export const ROUTES = {
   TUTOR_DASHBOARD: '/(tutor)/dashboard',
   TUTOR_SESSIONS: '/(tutor)/sessions',
   TUTOR_PROFILE: '/(tutor)/profile',
+  TUTOR_PAYMENT_HISTORY: '/(tutor)/payment-history',
+
+  // Payment flow
+  LEARNER_PAYMENT_SUCCESS: '/(learner)/payment/success',
 } as const;
 
 /**
