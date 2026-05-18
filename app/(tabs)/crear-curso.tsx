@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { SelectInput } from '@/components/ui/select-input';
 import { InterestPicker } from '@/components/ui/interest-picker';
 import { ACADEMIC_LEVELS, MODALIDADES, INTERESTS } from '@/constants/registration-options';
@@ -95,11 +96,11 @@ export default function CrearCursoScreen() {
   return (
     <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+        <View className="flex-row items-center px-4 py-2 border-b border-border gap-2">
           <TouchableOpacity onPress={() => router.back()} className="p-1">
             <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
           </TouchableOpacity>
-          <Text className="text-base font-semibold text-text-primary">
+          <Text className="text-base font-semibold text-text-primary flex-1">
             {isEditing ? 'Editar curso' : 'Nuevo curso'}
           </Text>
           <View className="w-8" />

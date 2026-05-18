@@ -96,30 +96,30 @@ export default function TutorDetallesScreen() {
 
     try {
       const email = clerk.user?.primaryEmailAddress?.emailAddress ?? '';
-
-      const response = await post(API_ENDPOINTS.tutorRegister, {
+      const payload = {
         email,
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         cedula: cedula.trim() || undefined,
         ciudad: ciudad || undefined,
         descripcion: bio.trim(),
-      });
+      };
+
+      const response = await post(API_ENDPOINTS.tutorRegister, payload);
 
       if (response.status === 201 || response.status === 200 || response.status === 409) {
-        setTutorOnboarding({
+        const onboardingData = {
           tutorId: response.data?.id ?? '',
           nombre: nombre.trim(),
           apellido: apellido.trim(),
           bio: bio.trim(),
-        });
+        };
+        setTutorOnboarding(onboardingData);
         try {
           await clerk.user?.reload();
           await clerk.session?.reload();
-        } catch {
-          // Non-fatal — index.tsx resolves routing from the DB profile.
-        }
-        router.push('/(auth)/tutor-certifications' as any);
+        } catch {}
+        router.push('/(auth)/tutor-primer-curso' as any);
       } else if (response.status === 0) {
         setError('Sin conexión. Verifica tu internet e intenta de nuevo.');
       } else {

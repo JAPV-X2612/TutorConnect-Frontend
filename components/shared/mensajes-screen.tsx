@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,10 +14,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useUser } from '@clerk/clerk-expo';
 import { API_ENDPOINTS } from '@/constants/api';
 import { useApiRequest } from '@/services/api';
 import { useChat, type ChatMessage } from '@/hooks/use-chat';
+import { useProfile } from '@/hooks/use-profile';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -533,8 +534,8 @@ function ChatView({ channel, onBack, isTutor }: { channel: Channel; onBack: () =
  * @author TutorConnect Team
  */
 export function MensajesScreen() {
-  const { user } = useUser();
-  const isTutor = user?.publicMetadata?.role === 'TUTOR';
+  const { profile } = useProfile();
+  const isTutor = profile?.role === 'TUTOR';
 
   const { get } = useApiRequest();
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -592,7 +593,7 @@ export function MensajesScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="px-5 pt-4 pb-3 border-b border-border">
+      <View className="px-5 pt-4 pb-3">
         <Text className="text-2xl font-bold text-text-primary">Mensajes</Text>
       </View>
 
@@ -611,7 +612,7 @@ export function MensajesScreen() {
           <Ionicons name="search-outline" size={16} color="#94A3B8" />
           <TextInput
             style={{ flex: 1, paddingVertical: 10, fontSize: 14, color: '#0F172A' }}
-            placeholder="Buscar por curso o tutor..."
+            placeholder={isTutor ? 'Buscar por curso o aprendiz...' : 'Buscar por curso o tutor...'}
             placeholderTextColor="#94A3B8"
             value={search}
             onChangeText={setSearch}
@@ -656,7 +657,9 @@ export function MensajesScreen() {
                   Sin conversaciones
                 </Text>
                 <Text className="text-text-muted text-sm text-center mt-2 leading-5">
-                  Aquí aparecerán tus chats al reservar una sesión con un tutor.
+                  {isTutor
+                    ? 'Aquí aparecerán los chats cuando un aprendiz te contacte.'
+                    : 'Aquí aparecerán tus chats al reservar una sesión con un tutor.'}
                 </Text>
               </View>
             )

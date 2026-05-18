@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTutorRegistration } from '@/hooks/use-tutor-registration';
@@ -17,10 +18,11 @@ export default function TutorRegisterScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-row items-center px-4 pt-2 pb-1">
+      <View className="flex-row items-center px-4 py-2 border-b border-border gap-2">
         <TouchableOpacity onPress={() => router.back()} className="p-1">
           <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
         </TouchableOpacity>
+        <Text className="text-base font-semibold text-text-primary flex-1">Registro de tutor</Text>
       </View>
 
       <View className="flex-1 px-6 justify-between pb-8">

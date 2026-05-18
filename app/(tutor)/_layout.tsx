@@ -53,6 +53,8 @@ export default function TutorTabsLayout() {
           }}
         />
         <Tabs.Screen name="crear-curso" options={{ href: null }} />
+        <Tabs.Screen name="payment-history" options={{ href: null }} />
+        <Tabs.Screen name="reviews" options={{ href: null }} />
       </Tabs>
     </RoleGuard>
   );

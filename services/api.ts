@@ -24,7 +24,8 @@ const sleep = (ms: number) =>
 
 const getMockResponse = async <T = any>(
   endpoint: string,
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT'
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT',
+  body?: any,
 ): Promise<ApiResponse<T>> => {
   if (method === 'GET' && endpoint.includes('/dashboard/learner')) {
     await sleep(400);
@@ -68,6 +69,95 @@ const getMockResponse = async <T = any>(
     };
   }
 
+  if (method === 'GET' && endpoint.includes('/payments/bookings/') && endpoint.endsWith('/summary')) {
+    await sleep(400);
+    const now = new Date();
+    return {
+      status: 200,
+      data: {
+        subject: 'Matemáticas Avanzadas',
+        tutorName: 'Juan García',
+        scheduledAt: new Date(now.getTime() + 3 * 86_400_000).toISOString(),
+        duration: 60,
+        timeRange: '10:00 – 11:00',
+        grossAmount: 120000,
+        commissionRate: 0.15,
+        commissionAmount: 18000,
+        netAmount: 102000,
+        expiresAt: new Date(now.getTime() + 10 * 60_000).toISOString(),
+      } as T,
+    };
+  }
+
+  if (method === 'POST' && endpoint.includes('/payments/bookings/') && endpoint.endsWith('/pay')) {
+    await sleep(1500);
+    const cardNumber = (body?.cardNumber ?? '').replace(/\s/g, '');
+    if (cardNumber !== '4111111111111111') {
+      return {
+        status: 200,
+        data: {
+          transactionId: '',
+          status: 'REJECTED',
+          amount: 0,
+          rejectionReason: cardNumber === '4000000000000002'
+            ? 'Fondos insuficientes'
+            : 'Tarjeta inválida',
+        } as T,
+      };
+    }
+    return {
+      status: 200,
+      data: {
+        transactionId: `TXN-${Date.now()}`,
+        status: 'CONFIRMED',
+        amount: 120000,
+      } as T,
+    };
+  }
+
+  if (method === 'GET' && endpoint.includes('/payments/tutor/history')) {
+    await sleep(500);
+    const now = Date.now();
+    return {
+      status: 200,
+      data: {
+        records: [
+          {
+            id: 'pay-1',
+            bookingId: 'book-1',
+            learnerName: 'Ana Martínez',
+            subject: 'Matemáticas',
+            sessionDate: new Date(now - 2 * 86_400_000).toISOString(),
+            grossAmount: 120000,
+            commissionRate: 0.15,
+            commissionAmount: 18000,
+            netAmount: 102000,
+            transactionId: 'TXN-001',
+          },
+          {
+            id: 'pay-2',
+            bookingId: 'book-2',
+            learnerName: 'Carlos Reyes',
+            subject: 'Física',
+            sessionDate: new Date(now - 5 * 86_400_000).toISOString(),
+            grossAmount: 90000,
+            commissionRate: 0.15,
+            commissionAmount: 13500,
+            netAmount: 76500,
+            transactionId: 'TXN-002',
+          },
+        ],
+        summary: {
+          totalSessions: 2,
+          grossTotal: 210000,
+          commissionTotal: 31500,
+          netTotal: 178500,
+          month: new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }),
+        },
+      } as T,
+    };
+  }
+
   await sleep(300);
   return { status: 200, data: {} as T };
 };
@@ -83,7 +173,7 @@ export const useApiRequest = () => {
   ): Promise<ApiResponse<T>> => {
     try {
       if (isFrontendOnlyMode) {
-        return getMockResponse<T>(endpoint, method);
+        return getMockResponse<T>(endpoint, method, body);
       }
 
       const token = await getToken().catch(() => null);
@@ -111,7 +201,6 @@ export const useApiRequest = () => {
         config.body = body;
       }
 
-      console.log(`[API] ${method} ${endpoint}`);
       const response = await fetch(endpoint, config);
 
       // Handle response based on content type

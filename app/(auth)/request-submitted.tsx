@@ -3,7 +3,13 @@ import { useRouter } from 'expo-router';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function SolicitudEnviadaScreen() {
+/**
+ * Confirmation screen shown after a tutor submits their certification request.
+ * Redirects to the tutor dashboard on dismissal.
+ *
+ * @author TutorConnect Team
+ */
+export default function RequestSubmittedScreen() {
   const router = useRouter();
 
   const handleGoHome = () => {
@@ -13,7 +19,7 @@ export default function SolicitudEnviadaScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1 px-6 justify-center items-center">
-        {/* Success Icon */}
+        {/* Success icon */}
         <View className="w-20 h-20 rounded-full bg-green-100 items-center justify-center mb-6">
           <Ionicons name="checkmark-sharp" size={40} color="#22c55e" />
         </View>
@@ -28,7 +34,7 @@ export default function SolicitudEnviadaScreen() {
           Tu solicitud fue enviada. La revisaremos en menos de 24 horas.
         </Text>
 
-        {/* Go Home Button */}
+        {/* CTA */}
         <TouchableOpacity
           onPress={handleGoHome}
           activeOpacity={0.85}

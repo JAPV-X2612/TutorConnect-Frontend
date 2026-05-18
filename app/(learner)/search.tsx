@@ -1,6 +1,7 @@
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { CategoryIcon } from '@/constants/category-icons';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -219,8 +220,6 @@ export default function SearchScreen() {
   useFocusEffect(useCallback(() => {
     setRecoLoading(true);
     api.get<CourseResult[]>(API_ENDPOINTS.searchRecommendations(10)).then((res) => {
-      console.log('RECO status:', res.status);
-      console.log('RECO data:', JSON.stringify(res.data?.slice(0,3).map((c: any) => c.subject)));
       if (Array.isArray(res.data)) setRecommendations(res.data);
       setRecoLoading(false);
     });
@@ -258,19 +257,16 @@ export default function SearchScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
         <View style={{
           flexDirection: 'row', alignItems: 'center',
-          paddingHorizontal: 16, paddingVertical: 12,
+          paddingHorizontal: 16, paddingVertical: 8,
           borderBottomWidth: 1, borderBottomColor: '#E2E8F0',
-          backgroundColor: '#fff', gap: 12,
+          backgroundColor: '#fff', gap: 8,
         }}>
-          <TouchableOpacity onPress={() => setSelectedCategory(null)} accessibilityLabel="Volver">
+          <TouchableOpacity onPress={() => setSelectedCategory(null)} accessibilityLabel="Volver" style={{ padding: 4 }}>
             <Ionicons name="arrow-back" size={24} color="#0F172A" />
           </TouchableOpacity>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {activeCategory && <CategoryIcon id={activeCategory.id} size={18} color="#006A75" />}
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#0F172A' }}>
-              {activeCategory?.label}
-            </Text>
-          </View>
+          <Text style={{ fontSize: 15, fontWeight: '600', color: '#0F172A', flex: 1 }} numberOfLines={1}>
+            {activeCategory?.label}
+          </Text>
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 10 }}>
           {activeCategory?.subjects.map((subject) => (
@@ -300,20 +296,16 @@ export default function SearchScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
         <View style={{
           flexDirection: 'row', alignItems: 'center',
-          paddingHorizontal: 16, paddingVertical: 12,
+          paddingHorizontal: 16, paddingVertical: 8,
           borderBottomWidth: 1, borderBottomColor: '#E2E8F0',
-          backgroundColor: '#fff', gap: 12,
+          backgroundColor: '#fff', gap: 8,
         }}>
-          <TouchableOpacity onPress={() => setSelectedSubject(null)} accessibilityLabel="Volver">
+          <TouchableOpacity onPress={() => setSelectedSubject(null)} accessibilityLabel="Volver" style={{ padding: 4 }}>
             <Ionicons name="arrow-back" size={24} color="#0F172A" />
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#0F172A' }}>{selectedSubject}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              {activeCategory && <CategoryIcon id={activeCategory.id} size={11} color="#94A3B8" />}
-              <Text style={{ fontSize: 11, color: '#94A3B8' }}>{activeCategory?.label}</Text>
-            </View>
-          </View>
+          <Text style={{ fontSize: 15, fontWeight: '600', color: '#0F172A', flex: 1 }} numberOfLines={1}>
+            {selectedSubject}
+          </Text>
         </View>
 
         {legacyLoading ? (
